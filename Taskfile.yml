@@ -1,0 +1,46 @@
+# go install github.com/go-task/task/v3/cmd/task@latest
+version: '3'
+
+vars:
+  APPS: { sh: find app -maxdepth 1 -mindepth 1 -type d -print | xargs -L 1 }
+  MODULE_NAME: { sh: go list -m | head -n 1 }
+  LOCAL_OS: { sh:  go env GOOS }
+  LOCAL_ARCH: { sh:  go env GOARCH }
+
+tasks:
+  proto:
+    desc: Gen proto
+    cmds:
+      - cmd: .build/tools_check.sh
+        silent: true
+      - cmd: .build/build_api.sh
+        silent: true
+
+  format:
+    desc: Format *go code
+    cmds:
+      - bash script/format.sh all {{.MODULE_NAME}}
+
+  format-app:
+    desc: Format {app}/*go code
+    cmds:
+      - bash script/format.sh {{.CLI_ARGS}} {{.MODULE_NAME}}
+
+  wire:
+    desc: Run wire cmd for app -- app_path
+    cmds:
+      - 'if [[ "{{.CLI_ARGS}}" =~ [[:space:]] ]]; then echo "Usage: task build -- app_path" && exit 1; fi'
+      - 'name={{.CLI_ARGS}}; if [ -z "${name}" ]; then echo "Error: app_path is required for build task"; exit 1; fi'
+      - if [ ! -d "{{.CLI_ARGS}}" ]; then echo "dir {{.CLI_ARGS}} not exist!"; exit 1; fi
+      - bash script/dev_tool_check.sh
+      - echo 'Start gen wire {{.CLI_ARGS}}'
+      - 'cd {{.CLI_ARGS}} && wire ./... && echo "Gen wire success!"'
+      - task format-app -- {{.CLI_ARGS}}
+
+  wire-all:
+    desc: Run wire cmd for all app
+    cmds:
+      - bash script/dev_tool_check.sh
+      - echo 'Start gen wire for all app'
+      - find app -type d -mindepth 1 -maxdepth 1 -exec sh -c 'cd "$1" && echo "Gen wire for $1" && wire ./... ' sh {} \;
+      - task format

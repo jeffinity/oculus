@@ -1,0 +1,5 @@
+package logx
+
+func NewLogger() {
+
+}

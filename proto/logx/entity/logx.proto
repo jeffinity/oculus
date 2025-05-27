@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package oculus.logx;
+
+
+message LogOpt {
+
+  bool disable_std_log = 1;  // 是否禁用标准输出, 默认输出
+  string file_log_path = 2;  // 文件日志输出目录，目录会自动创建，默认为空表示不输出到文件
+
+  string level = 3;  // 日志级别，忽略大小写，取值 DEBUG、INFO、WARNING、ERROR, 默认值 INFO
+}
+

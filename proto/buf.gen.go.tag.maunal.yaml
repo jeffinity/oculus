@@ -1,0 +1,11 @@
+version: v1
+managed:
+  enabled: true
+  go_package_prefix:
+    default: github.com/jeffinity/oculus/api
+plugins:
+  - plugin: gotag
+    out: .
+    opt:
+      - paths=source_relative
+      - outdir=out
