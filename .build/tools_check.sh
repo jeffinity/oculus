@@ -15,6 +15,7 @@ packages=(
     [protoc-gen-openapiv2]="github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.26.3"
     [protoc-gen-gotag]="github.com/srikrsna/protoc-gen-gotag@v1.0.2"
     [buf]="github.com/bufbuild/buf/cmd/buf@latest"
+    [gum]="github.com/charmbracelet/gum@latest"
 )
 
 check_binary() {

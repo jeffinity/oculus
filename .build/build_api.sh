@@ -2,33 +2,39 @@
 
 set -eu
 
-. .build/common.sh
+. .build/gum_helper.sh
 
-GOBIN=$(pwd)/.build/.bin
-PATH="$GOBIN:$PATH"
 
-cd proto
-buf generate --template buf.gen.go.manual.yaml
+gen_proto() {
 
-ln -sf ../api out
-buf generate --template buf.gen.go.tag.maunal.yaml
-rm -f out
+  sleep 1  # 展示 loading 效果最小时间
 
-cd ..
+  (
+    cd proto || {
+      echo_color "✖ Error: 找不到 proto 目录" red
+      return 1
+    }
+
+    if ! buf generate --template buf.gen.go.manual.yaml; then
+      echo_color "✖ Error: buf generate (manual) 失败" red
+      return 1
+    fi
+
+    if ! ln -sf ../api out; then
+      echo_color "✖ Error: ln -sf ../api out 失败" red
+      return 1
+    fi
+
+    if ! buf generate --template buf.gen.go.tag.maunal.yaml; then
+      echo_color "✖ Error: buf generate (tag) 失败" red
+      rm -f out
+      return 1
+    fi
+
+    rm -f out
+  )
+}
+
+spin_exec "gen proto..." gen_proto
 
 echo_color "✔ All protos have been generated." green
-
-echo
-echo -e "\e[32m"
-echo "      ████████ ██     ██   ██████    ██████  ████████  ████████  ████████"
-echo "     ██░░░░░░ ░██    ░██  ██░░░░██  ██░░░░██░██░░░░░  ██░░░░░░  ██░░░░░░ "
-echo "    ░██       ░██    ░██ ██    ░░  ██    ░░ ░██      ░██       ░██     "
-echo "    ░█████████░██    ░██░██       ░██       ░███████ ░█████████░█████████"
-echo "    ░░░░░░░░██░██    ░██░██       ░██       ░██░░░░  ░░░░░░░░██░░░░░░░░██"
-echo "           ░██░██    ░██░░██    ██░░██    ██░██             ░██       ░██"
-echo "     ████████ ░░███████  ░░██████  ░░██████ ░████████ ████████  ████████ "
-echo "    ░░░░░░░░   ░░░░░░░    ░░░░░░    ░░░░░░  ░░░░░░░░ ░░░░░░░░  ░░░░░░░░  "
-echo -e "\e[0m"
-echo
-
-

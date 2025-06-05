@@ -1,0 +1,19 @@
+{
+  "lint-staged": {
+    "files": {
+      "*.go": [
+        "gofmt -s -w -l",
+        "@gci write --skip-generated --skip-vendor -s Standard -s Default -s 'Prefix(github.com/jeffinity/oculus)' -s Blank -s Dot",
+        "@golines -w --max-len=180 --base-formatter=gofmt --reformat-tags --shorten-comments --ignore-generated",
+        "[dir] @golangci-lint run"
+      ],
+      "*.json": "@format",
+      "go.mod": "[noArgs] go mod edit -fmt"
+    }
+  },
+  "tools": {
+    "gci": "0.13.5",
+    "golangci-lint": "v1.64.4",
+    "golines": "0.12.2"
+  }
+}

@@ -1,0 +1,69 @@
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - cyclop
+    - dogsled
+    - dupl
+    - durationcheck
+    - errorlint
+    - forbidigo
+    - forcetypeassert
+    - funlen
+    - gci
+linters-settings:
+  cyclop:
+    # The maximal code complexity to report.
+    # Default: 10
+    max-complexity: 13
+    # The maximal average package complexity.
+    # If it's higher than 0.0 (float) the check is enabled
+    # Default: 0.0
+    #    package-average: 0.5
+    # Should ignore tests.
+    # Default: false
+    skip-tests: true
+  errcheck:
+    check-type-assertions: true
+  errorlint:
+    comparison: false
+    asserts: false
+  forbidigo:
+    forbid:
+      - "^print$"
+      - "^println$"
+      - '^fmt\.Print.*'
+  goimports:
+    local-prefixes: github.com/jeffinity/oculus
+  funlen:
+    lines: 60
+    statements: 40
+  gci:
+    sections:
+      - standard
+      - default
+      - prefix(github.com/jeffinity/oculus)
+      - blank
+      - dot
+  dupl:
+    threshold: 200
+run:
+  tests: false
+issues:
+  exclude-rules:
+    - text: "SA1019"
+      linters:
+        - staticcheck
+    - path: vendor/.*
+      text: ".*"
+    - path: deprecated/.*
+      text: ".*"
+    - path: docs/.*
+      text: ".*"
+    - path: ".*_test\\.go"
+      text: ".*"
