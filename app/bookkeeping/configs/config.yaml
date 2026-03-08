@@ -1,0 +1,19 @@
+server:
+  http:
+    addr: 0.0.0.0:6001
+    timeout: 30s
+  grpc:
+    addr: 0.0.0.0:7001
+    timeout: 30s
+
+log:
+  level: "DEBUG"
+  max_backups: 10
+  rotate_daily: true
+  max_size_mb: 100
+  compress: true
+  log_dir: /tmp/bookkeeping
+
+data:
+  postgres:
+    dsn: 'postgresql://postgres:13676481116@10.10.10.4:5432/postgres'

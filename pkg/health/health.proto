@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package gainetics.probe_executor.health.v1;
+
+option go_package = "github.com/jeffinity/app-layout/pkg/health;healthv1";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+
+// 健康检查
+service HealthService {
+  // Liveness（存活）：
+  // - 健康时返回 gRPC OK（HTTP 200）
+  // - 不健康时返回 gRPC Unavailable（HTTP 503）
+  rpc Liveness(HealthCheckRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {get: "/apis/health/v1/healthz"};
+  }
+
+  // Readiness（就绪：依赖可用、可接新流量）：
+  // - 就绪时返回 gRPC OK（HTTP 200）
+  // - 未就绪时返回 gRPC Unavailable（HTTP 503）
+  rpc Readiness(HealthCheckRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {get: "/apis/health/v1/readyz"};
+  }
+
+  // 详细状态（便于排障/观测）
+  rpc Status(StatusRequest) returns (StatusReply) {
+    option (google.api.http) = {get: "/apis/health/v1/healthz/status"};
+  }
+}
+
+message HealthCheckRequest {}
+
+message StatusRequest {}
+
+// 健康状态
+enum Status {
+  STATUS_UNUSED = 0;
+  // 健康/就绪
+  STATUS_UP = 1;
+  // 不健康/未就绪
+  STATUS_DOWN = 2;
+  // 降级但可服务（可选）
+  STATUS_DEGRADED = 3;
+}
+
+// 详细检查项
+message Check {
+  // 依赖名，如 "postgres", "redis", "kafka"
+  string name = 1;
+  // 单项状态
+  Status status = 2;
+  // 错因或说明
+  string reason = 3;
+  // 探测耗时
+  int64 latency_ms = 4;
+  // 当前状态起始时间
+  google.protobuf.Timestamp since = 5;
+  // 额外信息，如地址/库名等
+  map<string, string> metadata = 6;
+}
+
+// 详细健康状态
+message StatusReply {
+  // 汇总状态（UP/DOWN/DEGRADED）
+  Status overall = 1;
+  // 服务名
+  string service = 2;
+  // 版本信息
+  Version version_info = 3;
+  // 进程已运行秒数
+  int64 uptime_seconds = 6;
+  // 生成该响应的时间
+  google.protobuf.Timestamp now = 7;
+  // 依赖项列表
+  repeated Check checks = 8;
+}
+
+message Version {
+  string version = 1;
+  string build_time = 2;
+  string build_user = 3;
+  string commit_id = 4;
+  string go_version = 5;
+  string go_arch = 6;
+  string build_os = 7;
+}

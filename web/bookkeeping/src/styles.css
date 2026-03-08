@@ -1,0 +1,755 @@
+:root {
+  font-family: "PingFang SC", "Noto Sans SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  color: #141414;
+  background-color: #f4f6fb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(1200px 500px at 5% -20%, rgba(19, 99, 223, 0.08), transparent 60%),
+    radial-gradient(1200px 500px at 95% 0%, rgba(22, 163, 74, 0.08), transparent 60%),
+    #f4f6fb;
+}
+
+.page-wrap {
+  width: min(1320px, 100%);
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.main-card {
+  border-radius: 24px;
+  box-shadow: 0 8px 26px rgba(23, 43, 77, 0.08);
+}
+
+.top-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 16px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.loan-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.loan-toggle-label {
+  color: #4b5563;
+}
+
+.page-title {
+  margin: 0 !important;
+  font-size: 40px !important;
+  line-height: 1.2 !important;
+  letter-spacing: 1px;
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  gap: 16px;
+}
+
+.change-list-card {
+  margin-top: 16px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  border: 1px solid #eef2fb;
+  background: #ffffff;
+}
+
+.change-list-title {
+  margin: 0 0 10px 0 !important;
+}
+
+.loan-list-card {
+  margin-top: 16px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  border: 1px solid #eef2fb;
+  background: #ffffff;
+}
+
+.loan-list-title {
+  margin: 0 0 10px 0 !important;
+}
+
+.loan-list-loading {
+  min-height: 80px;
+  display: grid;
+  place-items: center;
+}
+
+.loan-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.loan-list-item {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 8px 0 0 0;
+  margin: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.loan-list-item:hover .loan-item-link {
+  color: #1677ff;
+}
+
+.loan-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.loan-item-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.loan-item-link {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.loan-item-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 12px;
+  color: #4b5563;
+}
+
+.loan-item-grid span:nth-child(2n) {
+  display: inline-flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.loan-list-divider {
+  margin-top: 12px;
+  border-bottom: 1px dashed #e5e7eb;
+}
+
+.loan-progress-wrap {
+  margin-top: 10px;
+}
+
+.loan-detail-summary {
+  border: 1px solid #eef2fb;
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.loan-detail-row {
+  display: grid;
+  grid-template-columns: 108px 1fr 108px 1fr;
+  gap: 8px 12px;
+  padding: 6px 0;
+}
+
+.loan-detail-row-full {
+  grid-template-columns: 108px 1fr;
+}
+
+.loan-detail-row span:nth-child(2n) {
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.loan-detail-row span:nth-child(2n-1) {
+  color: #4b5563;
+}
+
+.value-right {
+  display: inline-flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  width: 100%;
+}
+
+.value-money {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.value-token {
+  font-variant-numeric: tabular-nums;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.value-unit {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.prepayment-saved-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+}
+
+.prepayment-saved-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.prepayment-saved-text {
+  color: #4b5563;
+  font-size: 12px;
+}
+
+.prepayment-saved-amount {
+  color: #16a34a !important;
+  font-size: 36px !important;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.prepayment-saved-unit {
+  color: #6b7280;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.prepayment-mode-value {
+  color: #111827;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+
+.rate-adjust-card {
+  border-radius: 12px;
+  border: 1px solid #eef2fb;
+}
+
+.rate-adjust-form {
+  row-gap: 8px;
+}
+
+.rate-adjust-tip {
+  margin-top: 8px;
+  display: inline-block;
+}
+
+.plan-card {
+  border-radius: 12px;
+  border: 1px solid #eef2fb;
+}
+
+.plan-title {
+  margin: 8px 8px 12px 8px !important;
+}
+
+.repayment-plan-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+  padding: 4px 8px 10px 8px;
+}
+
+.repayment-plan-item {
+  border: 1px solid #e9eef9;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.repayment-plan-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.repayment-plan-ym {
+  color: #1f2937;
+  font-weight: 700;
+}
+
+.repayment-plan-date {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.repayment-plan-grid {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 6px 10px;
+}
+
+.repayment-plan-grid span:nth-child(2n-1) {
+  color: #6b7280;
+}
+
+.history-card-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+  padding: 4px 8px 10px 8px;
+}
+
+.history-card-item {
+  border: 1px solid #e9eef9;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.history-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.history-card-title {
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.history-card-date {
+  color: #1f2937;
+  font-weight: 700;
+}
+
+.history-card-grid {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 6px 10px;
+}
+
+.history-card-grid span:nth-child(2n-1) {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+.change-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.change-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px dashed #eef2fb;
+}
+
+.change-item-btn {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  margin: 0;
+  cursor: pointer;
+}
+
+.change-item-btn:hover .change-ym,
+.change-item-btn:hover .change-value {
+  color: #1677ff;
+}
+
+.change-item-btn:focus-visible {
+  outline: 2px solid rgba(22, 119, 255, 0.4);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.change-item:last-child {
+  border-bottom: none;
+}
+
+.change-ym {
+  color: #4b5563;
+}
+
+.change-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.change-value-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.change-value.up {
+  color: #16a34a;
+}
+
+.change-value.down {
+  color: #dc2626;
+}
+
+.change-remark {
+  color: #4b5563;
+}
+
+.ledger-month-subtitle {
+  display: inline-block;
+  margin-bottom: 14px;
+  color: #6b7280;
+}
+
+.ledger-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ledger-day-group {
+  border: 1px solid #edf1fb;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.ledger-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f4fb;
+}
+
+.ledger-day-date {
+  color: #6b7280;
+  font-size: 17px;
+}
+
+.ledger-day-total {
+  color: #6b7280;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-day-total.up {
+  color: #16a34a;
+}
+
+.ledger-day-total.down {
+  color: #dc2626;
+}
+
+.ledger-item-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.ledger-item-row {
+  display: grid;
+  grid-template-columns: 54px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+}
+
+.ledger-item-row + .ledger-item-row {
+  border-top: 1px solid #f6f7fb;
+}
+
+.ledger-item-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f6f8;
+}
+
+.ledger-item-icon {
+  font-size: 22px;
+  color: #595f6b;
+}
+
+.ledger-item-label {
+  color: #1f2937;
+  font-size: 16px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ledger-item-amount {
+  font-variant-numeric: tabular-nums;
+  font-size: 18px;
+  color: #1f2937;
+  text-align: right;
+}
+
+.ledger-item-amount.up {
+  color: #16a34a;
+}
+
+.ledger-item-amount.down {
+  color: #111827;
+}
+
+.ledger-stats-filter-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.ledger-dimension-tabs .ant-tabs-nav {
+  margin-bottom: 0 !important;
+}
+
+.ledger-period-tabs .ant-tabs-nav {
+  margin-bottom: 0 !important;
+}
+
+.ledger-period-tabs .ant-tabs-nav-wrap {
+  overflow-x: auto;
+}
+
+.ledger-period-tabs .ant-tabs-tab {
+  padding: 10px 0 !important;
+  margin-inline: 0 34px !important;
+  color: #b8bcc4;
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.ledger-period-tabs .ant-tabs-tab .ant-tabs-tab-btn {
+  color: inherit;
+}
+
+.ledger-period-tabs .ant-tabs-tab.ant-tabs-tab-active {
+  color: #1f2937;
+  font-weight: 700;
+}
+
+.ledger-period-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #1f2937;
+  text-shadow: none;
+}
+
+.ledger-period-tabs .ant-tabs-ink-bar {
+  height: 4px !important;
+  background: #111827 !important;
+  border-radius: 0;
+}
+
+.ledger-period-tabs .ant-tabs-nav::before {
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.ledger-stats-chart-card,
+.ledger-stats-ranking-card {
+  border-radius: 14px;
+  border: 1px solid #eef2fb;
+}
+
+.ledger-stats-chart-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.ledger-stats-total-expense {
+  color: #6b7280;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ledger-ranking-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px solid #edf1fb;
+  border-radius: 10px;
+  background: #fafcff;
+}
+
+.ledger-ranking-left {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.ledger-ranking-rank {
+  color: #1677ff;
+  min-width: 32px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-ranking-category {
+  color: #1f2937;
+}
+
+.ledger-ranking-expense {
+  color: #dc2626;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.trend-card {
+  border-radius: 16px;
+  border: 1px solid #eef2fb;
+}
+
+.chart-touch-layer {
+  touch-action: pan-y;
+}
+
+.chart-touch-layer canvas,
+.chart-touch-layer svg {
+  touch-action: pan-y !important;
+}
+
+.card-header {
+  margin-bottom: 8px;
+}
+
+.metric-title {
+  font-size: 16px;
+  color: #4b5563;
+}
+
+.metric-value {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.state-wrap {
+  min-height: 320px;
+  display: grid;
+  place-items: center;
+}
+
+.app-loading {
+  min-height: 100vh;
+}
+
+@media (max-width: 768px) {
+  .page-wrap {
+    padding: 12px;
+  }
+
+  .main-card {
+    border-radius: 16px;
+  }
+
+  .page-title {
+    font-size: 30px !important;
+  }
+
+  .chart-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .loan-detail-row {
+    grid-template-columns: 100px 1fr;
+    gap: 6px 10px;
+  }
+
+  .repayment-plan-list {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 4px 4px 8px 4px;
+  }
+
+  .history-card-list {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 4px 4px 8px 4px;
+  }
+
+  .ledger-day-header {
+    padding: 12px;
+  }
+
+  .ledger-day-date {
+    font-size: 15px;
+  }
+
+  .ledger-item-row {
+    grid-template-columns: 48px 1fr auto;
+    padding: 10px 12px;
+  }
+
+  .ledger-item-icon-wrap {
+    width: 40px;
+    height: 40px;
+  }
+
+  .ledger-item-icon {
+    font-size: 18px;
+  }
+
+  .ledger-item-label {
+    font-size: 15px;
+  }
+
+  .ledger-item-amount {
+    font-size: 16px;
+  }
+
+  .ledger-stats-chart-head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .ledger-period-tabs .ant-tabs-tab {
+    margin-inline: 0 20px !important;
+    font-size: 16px;
+    padding: 8px 0 !important;
+  }
+}
