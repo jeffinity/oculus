@@ -1,0 +1,142 @@
+syntax = "proto3";
+
+package api.mh.v1;
+
+option go_package = "github.com/jeffinity/oculus/proto/mh/v1;v1";
+
+import "google/api/annotations.proto";
+
+service MHComicService {
+
+  // 查询漫画列表
+  rpc ListBooks(ListBooksRequest) returns (ListBooksReply) {
+    option (google.api.http) = {
+      get: "/api/v1/mh/books"
+    };
+  }
+
+  // 查询最新章节列表
+  rpc ListLatest(ListLatestRequest) returns (ListLatestReply) {
+    option (google.api.http) = {
+      get: "/api/v1/mh/latest"
+    };
+  }
+
+  // 查询漫画目录
+  rpc GetBook(GetBookRequest) returns (GetBookReply) {
+    option (google.api.http) = {
+      get: "/api/v1/mh/book"
+    };
+  }
+
+  // 查询章节详情
+  rpc GetChapter(GetChapterRequest) returns (GetChapterReply) {
+    option (google.api.http) = {
+      get: "/api/v1/mh/chapter"
+    };
+  }
+
+  // 同步增量章节
+  rpc Sync(SyncRequest) returns (OperationReply) {
+    option (google.api.http) = {
+      post: "/api/v1/mh/sync"
+      body: "*"
+    };
+  }
+
+  // 反查并补全漫画信息
+  rpc Proot(ProotRequest) returns (OperationReply) {
+    option (google.api.http) = {
+      post: "/api/v1/mh/proot"
+      body: "*"
+    };
+  }
+}
+
+message ListBooksRequest {
+  int32 page = 1;
+  int32 size = 2;
+}
+
+message ListBooksReply {
+  int32 page = 1;
+  int32 size = 2;
+  int64 total = 3;
+  int32 total_pages = 4;
+  repeated BookListItem items = 5;
+}
+
+message BookListItem {
+  string title = 1;
+  int64 org_id = 2;
+  string desc = 3;
+  string cover_url = 4;
+  string update_time = 5;
+  map<string, string> cover = 6;
+}
+
+message ListLatestRequest {
+  int32 page = 1;
+  int32 size = 2;
+}
+
+message ListLatestReply {
+  int32 page = 1;
+  int32 size = 2;
+  int64 total = 3;
+  int32 total_pages = 4;
+  repeated LatestListItem items = 5;
+}
+
+message LatestListItem {
+  string cname = 1;
+  string title = 2;
+  int64 org_id = 3;
+  int64 cid = 4;
+  string prefix = 5;
+  string cover_url = 6;
+  string update_time = 7;
+}
+
+message GetBookRequest {
+  int64 org_id = 1;
+}
+
+message GetBookReply {
+  BookListItem book = 1;
+  repeated ChapterMeta chapters = 2;
+  int64 last_cid = 3;
+}
+
+message ChapterMeta {
+  int64 cid = 1;
+  string name = 2;
+  string prefix = 3;
+}
+
+message GetChapterRequest {
+  int64 org_id = 1;
+  int64 cid = 2;
+  int32 index = 3;
+  string prefix = 4;
+}
+
+message GetChapterReply {
+  string chapter_name = 1;
+  int64 cid = 2;
+  int32 index = 3;
+  int32 page = 4;
+  int32 total_pages = 5;
+  int64 prev_cid = 6;
+  int64 next_cid = 7;
+  string prefix = 8;
+  repeated string images = 9;
+}
+
+message SyncRequest {}
+
+message ProotRequest {}
+
+message OperationReply {
+  string message = 1;
+}

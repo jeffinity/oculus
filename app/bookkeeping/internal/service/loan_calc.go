@@ -257,6 +257,7 @@ type loanComputation struct {
 	prepayments   []normalizedPrepayment
 }
 
+//nolint:cyclop,funlen // repayment simulation intentionally keeps full calculation flow in one function.
 func buildLoanComputation(loan data.Loan, adjustments []data.LoanRateAdjustment, prepayments []data.LoanPrepayment) (*loanComputation, error) {
 	principal, err := parseMoney(loan.InitialPrincipal)
 	if err != nil {
@@ -360,7 +361,6 @@ func buildLoanComputation(loan data.Loan, adjustments []data.LoanRateAdjustment,
 		dueMonth := time.Date(firstDue.Year(), firstDue.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, payIdx, 0)
 		dueDate := dueDateOfMonth(dueMonth.Year(), dueMonth.Month(), repaymentDay)
 		if remaining <= 0.005 {
-			remaining = 0
 			break
 		}
 		rateBeforeAdjust := currentRate
@@ -398,8 +398,6 @@ func buildLoanComputation(loan data.Loan, adjustments []data.LoanRateAdjustment,
 			prepayIdx++
 		}
 		if remaining <= 0.005 {
-			remaining = 0
-			cumPrincipal += prepaymentPrincipal
 			break
 		}
 
@@ -430,9 +428,6 @@ func buildLoanComputation(loan data.Loan, adjustments []data.LoanRateAdjustment,
 			principalPaid = remaining
 		}
 		remaining -= principalPaid
-		if remaining <= 0.005 {
-			remaining = 0
-		}
 		cumPrincipal += principalPaid
 		cumPrincipal += prepaymentPrincipal
 		cumInterest += interest

@@ -51,6 +51,7 @@ func NewBookkeepingService(assetRepo *data.AssetRepo, loanRepo *data.LoanRepo, l
 	}
 }
 
+//nolint:cyclop,funlen // service method orchestrates multiple repository calls and validations.
 func (s *BookkeepingService) AssetList(ctx context.Context, req *bookkeepingv1.AssetListRequest) (*bookkeepingv1.AssetListReply, error) {
 	if req == nil {
 		req = &bookkeepingv1.AssetListRequest{}
@@ -258,6 +259,7 @@ func (s *BookkeepingService) LedgerList(ctx context.Context, req *bookkeepingv1.
 	return reply, nil
 }
 
+//nolint:cyclop,funlen // service method branches by dimension and keeps errors explicit.
 func (s *BookkeepingService) LedgerStats(ctx context.Context, req *bookkeepingv1.LedgerStatsRequest) (*bookkeepingv1.LedgerStatsReply, error) {
 	if req == nil {
 		req = &bookkeepingv1.LedgerStatsRequest{}
@@ -279,8 +281,8 @@ func (s *BookkeepingService) LedgerStats(ctx context.Context, req *bookkeepingv1
 
 	resolvedYM := strings.TrimSpace(req.GetYm())
 	resolvedYear := strings.TrimSpace(req.GetYear())
-	trend := make([]data.LedgerExpensePoint, 0)
-	rankings := make([]data.LedgerExpenseRank, 0)
+	var trend []data.LedgerExpensePoint
+	var rankings []data.LedgerExpenseRank
 
 	if dimension == "month" {
 		if _, err = parseYM(resolvedYM); err != nil {
@@ -498,6 +500,7 @@ func (s *BookkeepingService) StartLoanRepayment(ctx context.Context, req *bookke
 	}, nil
 }
 
+//nolint:cyclop,funlen // business validation covers multiple date/profile compatibility branches.
 func (s *BookkeepingService) AdjustLoanRate(ctx context.Context, req *bookkeepingv1.AdjustLoanRateRequest) (*bookkeepingv1.AdjustLoanRateReply, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "request is required")
@@ -669,6 +672,7 @@ func (s *BookkeepingService) LoanSummaryList(ctx context.Context, _ *bookkeeping
 	return reply, nil
 }
 
+//nolint:cyclop,funlen // response aggregates summary/plans/rate-history/prepayment-history in one RPC.
 func (s *BookkeepingService) LoanDetail(ctx context.Context, req *bookkeepingv1.LoanDetailRequest) (*bookkeepingv1.LoanDetailReply, error) {
 	if req == nil || strings.TrimSpace(req.GetLoanId()) == "" {
 		return nil, status.Error(codes.InvalidArgument, "loan id is required")
@@ -818,6 +822,7 @@ func formatRate(rate float64) string {
 	return strings.TrimRight(strings.TrimRight(fmt.Sprintf("%.6f", rate), "0"), ".")
 }
 
+//nolint:cyclop,funlen // context loader normalizes data from multiple repositories for downstream RPCs.
 func (s *BookkeepingService) loadLoanContext(ctx context.Context, loanID string) (*loanContext, error) {
 	loans, err := s.loanRepo.List(ctx)
 	if err != nil {

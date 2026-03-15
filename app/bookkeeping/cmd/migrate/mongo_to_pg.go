@@ -45,6 +45,7 @@ func newMongoToPGCmd() *cobra.Command {
 	return c
 }
 
+//nolint:cyclop,funlen // migration flow intentionally linear and explicit for operator visibility.
 func runMongoToPG() error {
 	m, cleanup, logger, err := buildMigrator()
 	if err != nil {
@@ -96,7 +97,9 @@ func runMongoToPG() error {
 	if err != nil {
 		return errors.Wrap(err, "连接 MongoDB 失败")
 	}
-	defer mongoClient.Disconnect(context.Background())
+	defer func() {
+		_ = mongoClient.Disconnect(context.Background())
+	}()
 	if err = mongoClient.Ping(ctx, readpref.Primary()); err != nil {
 		return errors.Wrap(err, "MongoDB ping 失败")
 	}

@@ -1,0 +1,113 @@
+syntax = "proto3";
+
+package app.mh;
+
+option go_package = "internal/conf";
+
+import "google/protobuf/duration.proto";
+
+message Bootstrap {
+
+  Servers server = 1;
+  Log log = 2;
+  Data data = 3;
+  Mh mh = 4;
+
+  Nacos nacos = 101;
+}
+
+message Mh {
+  Spider spider = 1;
+  Storage storage = 2;
+  Sync sync = 3;
+}
+
+message Spider {
+  string authority = 1;
+  string book_list_url_template = 2;
+  string book_detail_url_template = 3;
+  string chapter_url_template = 4;
+  string chapter_referer_template = 5;
+  int32 request_timeout_seconds = 6;
+  int32 retry_times = 7;
+  int32 min_delay_ms = 8;
+  int32 max_delay_ms = 9;
+  int32 bootstrap_book_list_pages = 10;
+}
+
+message Storage {
+  string endpoint = 1;
+  string access_key = 2;
+  string secret_key = 3;
+  bool secure = 4;
+  string bucket = 5;
+  string public_base_url = 6;
+  string default_cover_url = 7;
+}
+
+message Sync {
+  string state_id = 1;
+  int32 stop_after_consecutive_errors = 2;
+}
+
+message RedisCluster {
+  // Redis Cluster 的 seed 节点列表（至少 1 个，建议填 3 个）
+  // 例：["172.31.32.200:7001","172.31.32.200:7002","172.31.32.200:7003"]
+  repeated string seeds = 1;
+
+  // requirepass / masterauth
+  string password = 2;
+
+  // 是否启用 READONLY（允许读副本）
+  bool read_only = 3;
+}
+
+message Nacos {
+  string addr = 1;
+  uint64 port = 2;
+  string username = 3;
+  string password = 4;
+  string log_dir = 5;
+  string cluster_name = 6;
+  string namespace_id = 7;
+  string group_id = 8;
+  string data_id = 9;
+  int32 weight = 10;
+  repeated string data_ids = 11;  // 支持多个 data_id，按顺序后面的会覆盖前面的参数，data_id 同时设置实际插入 data_ids 第一位
+}
+
+message Log {
+  bool   disable_std_log = 1;  // 禁用标准输出
+  string log_dir = 2;  // 文件日志路径
+  string log_filename = 3;  // 文件日志路径
+  string level = 4;  // DEBUG / INFO / WARNING / ERROR
+
+  int32  max_size_mb = 10;  // 单文件上限 (MB)，0 表示默认 100
+  int32  max_backups = 11;  // 最多保留文件数，0 不限制
+  int32  max_age_days = 12;  // 最多保留天数，0 不限制
+  bool   compress = 13;  // 历史文件是否 gzip
+  bool   rotate_daily = 14;  // 按天轮转；false 为按大小
+}
+
+message Servers {
+  Server grpc = 1;
+  Server http = 2;
+}
+
+message Server {
+  string addr = 1;
+  string network = 2;
+  google.protobuf.Duration timeout = 3;
+  string public_endpoint = 4;
+}
+
+message Data {
+
+  Postgres postgres = 1;
+
+  RedisCluster redis_cluster = 2;
+}
+
+message Postgres {
+  string dsn = 1;
+}
