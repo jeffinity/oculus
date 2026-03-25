@@ -148,6 +148,10 @@ img {
 }
 
 .book-card {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
   cursor: pointer;
 }
 
@@ -205,9 +209,11 @@ img {
   grid-template-columns: 118px minmax(0, 1fr);
   gap: 16px;
   padding: 14px;
+  border: 0;
   border-radius: 24px;
   background: var(--paper);
   box-shadow: var(--shadow);
+  text-align: left;
   cursor: pointer;
 }
 
@@ -490,6 +496,14 @@ img {
   position: relative;
   min-height: 100vh;
   background: #121212;
+}
+
+.reader-images-button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .reader-images img {

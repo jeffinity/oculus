@@ -1,0 +1,23 @@
+{
+  "name": "oculus-tooling",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint:web": "eslint \"web/**/*.{js,jsx}\"",
+    "lint:web:fix": "eslint \"web/**/*.{js,jsx}\" --fix",
+    "lint:web:squirrel": "eslint \"web/squirrel/src/**/*.{js,jsx}\"",
+    "lint:web:squirrel:fix": "eslint \"web/squirrel/src/**/*.{js,jsx}\" --fix"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.24.0",
+    "eslint": "^9.24.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-promise": "^7.2.1",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-unicorn": "^56.0.1",
+    "globals": "^16.0.0"
+  }
+}

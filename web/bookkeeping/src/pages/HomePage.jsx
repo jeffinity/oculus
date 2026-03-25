@@ -1,5 +1,6 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+/* eslint-disable max-lines-per-function */
 import { Card, Empty, Progress, Select, Skeleton, Spin, Switch, Typography } from "antd";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 
 const TrendChartCard = lazy(() => import("../components/TrendChartCard"));
 
@@ -144,6 +145,93 @@ function getInitialRange() {
   return RANGE_SET.has(value) ? value : "all";
 }
 
+function openLoanDetail(loanId) {
+  const search = new URLSearchParams(window.location.search);
+  search.set("view", "loan-detail");
+  search.set("loan_id", loanId);
+  window.location.search = search.toString();
+}
+
+function openLedgerMonth(ym) {
+  const search = new URLSearchParams(window.location.search);
+  search.set("view", "ledger-month");
+  search.set("ledger_ym", ym.replace("-", "."));
+  window.location.search = search.toString();
+}
+
+function renderPageState(loading, filteredAssets) {
+  if (loading) {
+    return (
+      <div className="state-wrap">
+        <Spin size="large" />
+      </div>
+    );
+  }
+  if (filteredAssets.length === 0) {
+    return (
+      <div className="state-wrap">
+        <Empty description="暂无资产数据" />
+      </div>
+    );
+  }
+  return null;
+}
+
+function renderLoanSummarySection(loanLoading, loanSummaries) {
+  if (loanLoading) {
+    return (
+      <div className="loan-list-loading">
+        <Spin />
+      </div>
+    );
+  }
+  if (loanSummaries.length === 0) {
+    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无贷款数据" />;
+  }
+  return (
+    <div className="loan-list">
+      {loanSummaries.map((item) => (
+        <button
+          type="button"
+          key={item.loanId}
+          className="loan-list-item"
+          onClick={() => openLoanDetail(item.loanId)}
+        >
+          <div className="loan-item-head">
+            <span className="loan-item-name">{item.loanName || "未命名贷款"}</span>
+            <span className="loan-item-link">查看详情</span>
+          </div>
+          <div className="loan-item-grid">
+            <span>剩余本金</span>
+            <span className="value-right">{renderMoneyWithUnit(item.remainingPrincipal)}</span>
+            <span>剩余利息</span>
+            <span className="value-right">{renderMoneyWithUnit(item.remainingInterest)}</span>
+            <span>累计还款月数</span>
+            <span className="value-right value-token">{item.repaidMonths || 0}</span>
+            <span>累计还款本金</span>
+            <span className="value-right">{renderMoneyWithUnit(item.cumulativePrincipal)}</span>
+            <span>累计还款利息</span>
+            <span className="value-right">{renderMoneyWithUnit(item.cumulativeInterest)}</span>
+          </div>
+          <div className="loan-progress-wrap">
+            <Progress
+              percent={Number(
+                calcRemainingPercent(item.initialPrincipal, item.remainingPrincipal).toFixed(2)
+              )}
+              size={["100%", 10]}
+              strokeColor={{ "0%": "#1d4ed8", "100%": "#38bdf8" }}
+              trailColor="#e6edf8"
+              status="active"
+              format={(p) => `待还本金占比 ${p}%`}
+            />
+          </div>
+          {item.loanId !== loanSummaries[loanSummaries.length - 1]?.loanId ? <div className="loan-list-divider" /> : null}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [includeLoan, setIncludeLoan] = useState(getInitialIncludeLoan);
@@ -163,7 +251,7 @@ export default function HomePage() {
         if (!active) return;
         const finalData = remote.length > 0 ? remote : MOCK_DATA;
         setAssets(finalData);
-      } catch (_) {
+      } catch {
         if (!active) return;
         setAssets(MOCK_DATA);
       } finally {
@@ -198,7 +286,7 @@ export default function HomePage() {
         const items = await requestLoanSummaryList();
         if (!active) return;
         setLoanSummaries(items);
-      } catch (_) {
+      } catch {
         if (!active) return;
         setLoanSummaries([]);
       } finally {
@@ -210,19 +298,7 @@ export default function HomePage() {
     };
   }, [includeLoan]);
 
-  function openLoanDetail(loanId) {
-    const search = new URLSearchParams(window.location.search);
-    search.set("view", "loan-detail");
-    search.set("loan_id", loanId);
-    window.location.search = search.toString();
-  }
-
-  function openLedgerMonth(ym) {
-    const search = new URLSearchParams(window.location.search);
-    search.set("view", "ledger-month");
-    search.set("ledger_ym", ym.replace("-", "."));
-    window.location.search = search.toString();
-  }
+  const pageState = renderPageState(loading, filteredAssets);
 
   return (
     <div className="page-wrap">
@@ -244,15 +320,7 @@ export default function HomePage() {
           <Switch checked={includeLoan} loading={loading} onChange={setIncludeLoan} />
         </div>
 
-        {loading ? (
-          <div className="state-wrap">
-            <Spin size="large" />
-          </div>
-        ) : filteredAssets.length === 0 ? (
-          <div className="state-wrap">
-            <Empty description="暂无资产数据" />
-          </div>
-        ) : (
+        {pageState || (
           <>
             <div className="chart-grid">
               {METRICS.map((metric) => (
@@ -278,54 +346,7 @@ export default function HomePage() {
                 <Typography.Title level={4} className="loan-list-title">
                   贷款汇总信息
                 </Typography.Title>
-                {loanLoading ? (
-                  <div className="loan-list-loading">
-                    <Spin />
-                  </div>
-                ) : loanSummaries.length === 0 ? (
-                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无贷款数据" />
-                ) : (
-                  <div className="loan-list">
-                    {loanSummaries.map((item, idx) => (
-                      <button
-                        type="button"
-                        key={item.loanId}
-                        className="loan-list-item"
-                        onClick={() => openLoanDetail(item.loanId)}
-                      >
-                        <div className="loan-item-head">
-                          <span className="loan-item-name">{item.loanName || "未命名贷款"}</span>
-                          <span className="loan-item-link">查看详情</span>
-                        </div>
-                        <div className="loan-item-grid">
-                          <span>剩余本金</span>
-                          <span className="value-right">{renderMoneyWithUnit(item.remainingPrincipal)}</span>
-                          <span>剩余利息</span>
-                          <span className="value-right">{renderMoneyWithUnit(item.remainingInterest)}</span>
-                          <span>累计还款月数</span>
-                          <span className="value-right value-token">{item.repaidMonths || 0}</span>
-                          <span>累计还款本金</span>
-                          <span className="value-right">{renderMoneyWithUnit(item.cumulativePrincipal)}</span>
-                          <span>累计还款利息</span>
-                          <span className="value-right">{renderMoneyWithUnit(item.cumulativeInterest)}</span>
-                        </div>
-                        <div className="loan-progress-wrap">
-                          <Progress
-                            percent={Number(
-                              calcRemainingPercent(item.initialPrincipal, item.remainingPrincipal).toFixed(2)
-                            )}
-                            size={["100%", 10]}
-                            strokeColor={{ "0%": "#1d4ed8", "100%": "#38bdf8" }}
-                            trailColor="#e6edf8"
-                            status="active"
-                            format={(p) => `待还本金占比 ${p}%`}
-                          />
-                        </div>
-                        {idx < loanSummaries.length - 1 ? <div className="loan-list-divider" /> : null}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                {renderLoanSummarySection(loanLoading, loanSummaries)}
               </div>
             ) : null}
             <div className="change-list-card">

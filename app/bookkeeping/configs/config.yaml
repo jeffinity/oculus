@@ -16,4 +16,4 @@ log:
 
 data:
   postgres:
-    dsn: 'postgresql://postgres:13676481116@10.10.10.4:5432/postgres'
+    dsn: 'postgresql://postgres:13676481116@10.10.10.4:5432/bookkeeping'

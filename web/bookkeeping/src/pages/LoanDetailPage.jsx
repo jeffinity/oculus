@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+/* eslint-disable max-lines-per-function, complexity, max-statements, max-lines */
 import { Button, Card, DatePicker, Empty, Form, InputNumber, Progress, Select, Space, Spin, Typography, message } from "antd";
 import dayjs from "dayjs";
+import { useEffect, useMemo, useState } from "react";
 
 const MONEY_FORMAT = new Intl.NumberFormat("zh-CN", {
   minimumFractionDigits: 2,
@@ -91,6 +92,34 @@ function toBack() {
   window.location.href = `${window.location.pathname}${q ? `?${q}` : ""}`;
 }
 
+function renderPrepaymentMode(mode) {
+  if (mode === 1) {
+    return "月供不变，缩短期限";
+  }
+  if (mode === 2) {
+    return "期限不变，降低月供";
+  }
+  return "--";
+}
+
+function renderLoanPageState(loading, loanId, summary) {
+  if (loading) {
+    return (
+      <div className="state-wrap">
+        <Spin size="large" />
+      </div>
+    );
+  }
+  if (!loanId || !summary) {
+    return (
+      <div className="state-wrap">
+        <Empty description="未找到贷款详情" />
+      </div>
+    );
+  }
+  return null;
+}
+
 export default function LoanDetailPage() {
   const search = new URLSearchParams(window.location.search);
   const loanId = search.get("loan_id") || "";
@@ -101,6 +130,7 @@ export default function LoanDetailPage() {
   const [msgApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm();
   const [prepayForm] = Form.useForm();
+  const pageState = renderLoanPageState(loading, loanId, detail?.summary);
 
   useEffect(() => {
     let active = true;
@@ -116,7 +146,7 @@ export default function LoanDetailPage() {
         const data = await requestLoanDetail(loanId, 24);
         if (!active) return;
         setDetail(data);
-      } catch (_) {
+      } catch {
         if (!active) return;
         setDetail(null);
       } finally {
@@ -205,7 +235,7 @@ export default function LoanDetailPage() {
       setDetail(latest);
       form.resetFields();
       msgApi.success(`调息成功，最新年利率 ${newRate.toFixed(4)}`);
-    } catch (_) {
+    } catch {
       msgApi.error("调息失败，请稍后重试");
     } finally {
       setSubmitting(false);
@@ -241,7 +271,7 @@ export default function LoanDetailPage() {
       setDetail(latest);
       prepayForm.resetFields();
       msgApi.success("提前还款已记录并重算后续计划");
-    } catch (_) {
+    } catch {
       msgApi.error("提前还款提交失败，请稍后重试");
     } finally {
       setPrepaySubmitting(false);
@@ -258,15 +288,7 @@ export default function LoanDetailPage() {
           </Typography.Title>
           <Button onClick={toBack}>返回资产总览</Button>
         </div>
-        {loading ? (
-          <div className="state-wrap">
-            <Spin size="large" />
-          </div>
-        ) : !loanId || !summary ? (
-          <div className="state-wrap">
-            <Empty description="未找到贷款详情" />
-          </div>
-        ) : (
+        {pageState || (
           <Space direction="vertical" size={16} style={{ width: "100%" }}>
             <div className="loan-detail-summary">
               <div className="loan-detail-row loan-detail-row-full">
@@ -512,7 +534,7 @@ export default function LoanDetailPage() {
                         <span>还款方式</span>
                         <span className="value-right">
                           <span className="prepayment-mode-value">
-                          {item.mode === 1 ? "月供不变，缩短期限" : item.mode === 2 ? "期限不变，降低月供" : "--"}
+                          {renderPrepaymentMode(item.mode)}
                           </span>
                         </span>
                         <span>节省利息</span>

@@ -25,11 +25,52 @@ function buildChartData(items, key) {
   }));
 }
 
+function pickPointSize(length) {
+  if (length > 180) {
+    return 1.4;
+  }
+  if (length > 80) {
+    return 2;
+  }
+  return 2.6;
+}
+
+function pickLineWidth(length) {
+  if (length > 180) {
+    return 1;
+  }
+  if (length > 80) {
+    return 1.4;
+  }
+  return 2;
+}
+
+function buildTooltipHtml(title, color, options) {
+  const titleText = options?.title || "";
+  const first = options?.items?.[0] || {};
+  const value = NUMBER_FORMAT.format(Number(first.value || 0));
+  const remarkText = `${first.remark || ""}`.trim();
+  const remarkLine = remarkText !== "" ? `备注: ${escapeHtml(remarkText)}` : "&nbsp;";
+
+  return `
+    <div style="padding:2px 0 0 0;min-width:220px;">
+      <div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:8px;">${escapeHtml(titleText)}</div>
+      <div style="display:flex;align-items:center;gap:8px;color:rgba(0,0,0,0.9);line-height:1.4;">
+        <span style="width:10px;height:10px;border-radius:50%;background:${color};display:inline-block;"></span>
+        <span>${escapeHtml(`${title}: ${value}`)}</span>
+      </div>
+      <div style="margin-top:8px;min-height:20px;color:rgba(0,0,0,0.65);line-height:1.5;word-break:break-all;">
+        ${remarkLine}
+      </div>
+    </div>
+  `;
+}
+
 export default function TrendChartCard({ title, color, items, metricKey }) {
   const latest = items[items.length - 1];
   const data = useMemo(() => buildChartData(items, metricKey), [items, metricKey]);
-  const pointSize = data.length > 180 ? 1.4 : data.length > 80 ? 2 : 2.6;
-  const lineWidth = data.length > 180 ? 1 : data.length > 80 ? 1.4 : 2;
+  const pointSize = pickPointSize(data.length);
+  const lineWidth = pickLineWidth(data.length);
 
   const config = useMemo(
     () => ({
@@ -82,26 +123,7 @@ export default function TrendChartCard({ title, color, items, metricKey }) {
       },
       interaction: {
         tooltip: {
-          render: (_event, options) => {
-            const titleText = options?.title || "";
-            const first = options?.items?.[0] || {};
-            const value = NUMBER_FORMAT.format(Number(first.value || 0));
-            const remarkText = `${first.remark || ""}`.trim();
-            const line3 = remarkText !== "" ? `备注: ${escapeHtml(remarkText)}` : "&nbsp;";
-
-            return `
-              <div style="padding:2px 0 0 0;min-width:220px;">
-                <div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:8px;">${escapeHtml(titleText)}</div>
-                <div style="display:flex;align-items:center;gap:8px;color:rgba(0,0,0,0.9);line-height:1.4;">
-                  <span style="width:10px;height:10px;border-radius:50%;background:${color};display:inline-block;"></span>
-                  <span>${escapeHtml(`${title}: ${value}`)}</span>
-                </div>
-                <div style="margin-top:8px;min-height:20px;color:rgba(0,0,0,0.65);line-height:1.5;word-break:break-all;">
-                  ${line3}
-                </div>
-              </div>
-            `;
-          }
+          render: (_event, options) => buildTooltipHtml(title, color, options)
         }
       }
     }),

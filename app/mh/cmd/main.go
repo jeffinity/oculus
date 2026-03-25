@@ -6,7 +6,6 @@ import (
 
 	"github.com/jeffinity/oculus/app/mh/cmd/migrate"
 	"github.com/jeffinity/oculus/app/mh/cmd/proof"
-	"github.com/jeffinity/oculus/app/mh/cmd/proot"
 	"github.com/jeffinity/oculus/app/mh/cmd/reconcile"
 	"github.com/jeffinity/oculus/app/mh/cmd/server"
 	"github.com/jeffinity/oculus/app/mh/cmd/sync"
@@ -26,7 +25,6 @@ func init() {
 	rootCmd.AddCommand(server.Command())
 	rootCmd.AddCommand(sync.Command())
 	rootCmd.AddCommand(proof.Command())
-	rootCmd.AddCommand(proot.Command())
 	rootCmd.AddCommand(reconcile.Command())
 	rootCmd.AddCommand(CmdVersion())
 	rootCmd.AddCommand(migrate.CmdMigrate())

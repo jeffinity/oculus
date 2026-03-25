@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+/* eslint-disable max-lines-per-function */
 import {
   AppstoreOutlined,
   AppleOutlined,
@@ -31,6 +31,7 @@ import {
 } from "@ant-design/icons";
 import { Button, Card, Empty, Space, Spin, Typography } from "antd";
 import dayjs from "dayjs";
+import { useEffect, useMemo, useState } from "react";
 
 const MONEY_FORMAT = new Intl.NumberFormat("zh-CN", {
   minimumFractionDigits: 2,
@@ -156,8 +157,41 @@ function renderDaySubtotal(total) {
 }
 
 function renderAmount(amount) {
-  const sign = amount > 0 ? "+" : amount < 0 ? "-" : "";
+  let sign = "";
+  if (amount > 0) {
+    sign = "+";
+  } else if (amount < 0) {
+    sign = "-";
+  }
   return `${sign}${MONEY_FORMAT.format(Math.abs(amount))}`;
+}
+
+function getAmountClassName(amount) {
+  if (amount > 0) {
+    return "ledger-item-amount up";
+  }
+  if (amount < 0) {
+    return "ledger-item-amount down";
+  }
+  return "ledger-item-amount";
+}
+
+function renderLedgerState(loading, groups) {
+  if (loading) {
+    return (
+      <div className="state-wrap">
+        <Spin size="large" />
+      </div>
+    );
+  }
+  if (groups.length === 0) {
+    return (
+      <div className="state-wrap">
+        <Empty description="该月份暂无账单数据" />
+      </div>
+    );
+  }
+  return null;
 }
 
 async function requestLedgerList(ym) {
@@ -190,7 +224,7 @@ export default function LedgerMonthPage() {
         const list = await requestLedgerList(ym);
         if (!active) return;
         setItems(list);
-      } catch (_) {
+      } catch {
         if (!active) return;
         setItems([]);
       } finally {
@@ -204,6 +238,7 @@ export default function LedgerMonthPage() {
   }, [ym]);
 
   const groups = useMemo(() => buildGroups(items), [items]);
+  const pageState = renderLedgerState(loading, groups);
 
   return (
     <div className="page-wrap">
@@ -219,15 +254,7 @@ export default function LedgerMonthPage() {
         </div>
         <Typography.Text className="ledger-month-subtitle">{ym || "--"}</Typography.Text>
 
-        {loading ? (
-          <div className="state-wrap">
-            <Spin size="large" />
-          </div>
-        ) : groups.length === 0 ? (
-          <div className="state-wrap">
-            <Empty description="该月份暂无账单数据" />
-          </div>
-        ) : (
+        {pageState || (
           <div className="ledger-group-list">
             {groups.map((group) => {
               const dayTotal = renderDaySubtotal(group.total);
@@ -238,18 +265,18 @@ export default function LedgerMonthPage() {
                     <span className={dayTotal.className}>{`${dayTotal.label}: ${dayTotal.value}`}</span>
                   </div>
                   <div className="ledger-item-list">
-                    {group.items.map((item, idx) => {
+                    {group.items.map((item) => {
                       const Icon = CATEGORY_ICON_MAP[item.category] || CoffeeOutlined;
                       const label = item.remark || item.category || "未分类";
                       return (
-                        <div key={`${item.key}-${idx}`} className="ledger-item-row">
+                        <div key={item.key} className="ledger-item-row">
                           <span className="ledger-item-icon-wrap">
                             <Icon className="ledger-item-icon" />
                           </span>
                           <span className="ledger-item-label" title={label}>
                             {label}
                           </span>
-                          <span className={`ledger-item-amount ${item.amount > 0 ? "up" : item.amount < 0 ? "down" : ""}`}>
+                          <span className={getAmountClassName(item.amount)}>
                             {renderAmount(item.amount)}
                           </span>
                         </div>

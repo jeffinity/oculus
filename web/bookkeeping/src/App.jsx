@@ -1,5 +1,5 @@
-import { Suspense, lazy, useMemo } from "react";
 import { Empty, Spin } from "antd";
+import { Suspense, lazy, useMemo } from "react";
 
 const ROUTES = {
   "/": lazy(() => import("./pages/HomePage")),
@@ -18,7 +18,7 @@ function PageFallback() {
 }
 
 export default function App() {
-  const pathname = window.location.pathname;
+  const {pathname} = window.location;
   const search = new URLSearchParams(window.location.search);
   const view = search.get("view");
   const CurrentPage = useMemo(() => {

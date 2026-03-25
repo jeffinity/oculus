@@ -97,6 +97,32 @@ tasks:
       - cmd: task common:deploy -- {{.CLI_ARGS}}
         silent: true
 
+  sync:
+    desc: build and sync web app to remote host, e.g. task sync -- web/squirrel mh
+    cmds:
+      - cmd: |
+          set -euo pipefail
+
+          web_dir="$(printf '%s' "{{.CLI_ARGS}}" | awk '{print $1}')"
+          host="$(printf '%s' "{{.CLI_ARGS}}" | awk '{print $2}')"
+
+          if [ -z "${web_dir}" ] || [ -z "${host}" ]; then
+            echo "usage: task sync -- web/<name> <host>"
+            exit 1
+          fi
+
+          if [ ! -d "${web_dir}" ]; then
+            echo "web dir not found: ${web_dir}"
+            exit 1
+          fi
+
+          app_name="$(basename "${web_dir}")"
+          remote_dir="/data/web/${app_name}"
+
+          npm --prefix "${web_dir}" run build
+          rsync -a --delete "${web_dir}/dist/" "${host}:${remote_dir}/"
+        silent: true
+
   newapp:
     desc: create new app with oculus
     deps: [check]

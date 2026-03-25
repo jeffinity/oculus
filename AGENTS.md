@@ -78,6 +78,7 @@
 - `task build-linux-amd64 -- <app|all> [-f]`：构建 linux/amd64
 - `task build-linux-arm64 -- <app|all> [-f]`：构建 linux/arm64
 - `task deploy -- <app> <host[,host2]>`：构建并部署到远端（依赖 ssh/scp）
+- `task sync -- web/<name> <host>`：构建指定前端并同步 `dist/` 到远端 `/data/web/<name>/`（依赖 rsync/ssh）
 
 ### 4.2 工具安装与路径约定
 
@@ -96,6 +97,36 @@
   - `$(repo)/.build/.bin`
 - `task` 脚本会优先使用本地工具，再回退系统 PATH。
 
+### 4.3 前端 Lint 规范（React）
+
+- 仓库根目录统一使用 `ESLint Flat Config`：
+  - 配置文件：`eslint.config.js`
+  - 工具入口：根目录 `package.json`
+- 当前前端 lint 规则基线：
+  - `@eslint/js` recommended
+  - `eslint-plugin-react` recommended + `jsx-runtime`
+  - `eslint-plugin-react-hooks` recommended
+  - `eslint-plugin-jsx-a11y` recommended
+- 规则取向按实际 React 项目通行实践执行：
+  - Hooks 依赖必须正确，不允许随意绕过 `exhaustive-deps`
+  - JSX 可访问性作为默认要求处理，点击区域需支持键盘交互或改为原生可交互元素
+  - 禁止保留未使用变量、调试代码
+  - `react/prop-types` 默认关闭；本仓库当前不依赖 `prop-types` 做运行时类型约束
+- 当前统一命令：
+  - `npm run lint:web`：检查 `web/**/*.{js,jsx}`
+  - `npm run lint:web:fix`：修复可自动修复的问题
+  - `npm run lint:web:squirrel`：仅检查 `web/squirrel/src`
+  - `npm run lint:web:squirrel:fix`：仅修复 `web/squirrel/src`
+- 强制要求：
+  - 任何 `web/` 下前端代码改动完成后，必须先执行对应 lint 检查
+  - 对可自动修复的问题，必须先执行 `--fix` 命令再继续人工修正
+  - 提交前必须确保相关前端项目 lint 无报错；若本次涉及多个前端项目，需分别检查受影响项目或直接执行 `npm run lint:web`
+- 忽略目录：
+  - `dist/`
+  - `node_modules/`
+  - `.build/`
+- 后续新增前端应用时，默认接入这套根级 lint 配置，不再各自维护一份独立规则，除非确有框架差异。
+
 ## 5. 建议开发流程（本仓库）
 
 1. 首次进入仓库：
@@ -109,9 +140,13 @@
 5. 提交前建议：
    - `task format`
    - `task lint`
+   - 若改动包含 `web/` 前端代码，还需执行对应 `npm run lint:web[:fix]` 并确认无报错
 6. 本地或目标平台构建：
    - `task build -- app/<name>`
    - 或 `task build-linux-amd64 -- app/<name>`
+7. 前端构建并同步到远端：
+   - `task sync -- web/<name> <host>`
+   - 示例：`task sync -- web/squirrel mh`
 
 ## 6. 额外说明
 

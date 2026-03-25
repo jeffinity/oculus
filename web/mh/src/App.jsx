@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function, complexity, max-statements, max-lines */
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const LAST_LIST_ROUTE_KEY = "mh:last-list-route";
@@ -6,10 +7,6 @@ const PENDING_LIST_RESTORE_KEY = "mh:pending-list-restore";
 
 function getSearch() {
   return window.location.search || "";
-}
-
-function getCurrentRoute() {
-  return new URLSearchParams(getSearch());
 }
 
 function buildURL(query) {
@@ -150,7 +147,7 @@ function useRoute() {
 function useScrollMemory(key, ready) {
   useEffect(() => {
     if (!key) {
-      return;
+      return noop;
     }
 
     let ticking = false;
@@ -182,12 +179,12 @@ function useScrollMemory(key, ready) {
 
   useEffect(() => {
     if (!ready) {
-      return;
+      return noop;
     }
     const restored = restoreScrollPosition(key);
     if (!restored) {
       window.scrollTo({ top: 0, behavior: "auto" });
-      return;
+      return noop;
     }
     return restoreScrollPositionRobust(key);
   }, [key, ready]);
@@ -268,6 +265,31 @@ function goHome() {
   navigate(route.startsWith("?") ? route.slice(1) : route.replace(/^\//, "").replace(/^\?/, ""));
 }
 
+function noop() {}
+
+function openBookRoute(routeKey, item) {
+  saveScrollPosition(routeKey);
+  setPendingListRestore({
+    routeKey,
+    scrollY: window.scrollY,
+  });
+  const title = getBookTitle(item);
+  navigate(`view=book&org_id=${getOrgID(item)}${title ? `&title=${encodeURIComponent(title)}` : ""}`);
+}
+
+function openLatestChapterRoute(routeKey, item) {
+  saveScrollPosition(routeKey);
+  setPendingListRestore({
+    routeKey,
+    scrollY: window.scrollY,
+  });
+  const title = getLatestName(item);
+  const chapterTitle = getLatestChapter(item);
+  navigate(
+    `view=chapter&org_id=${getOrgID(item)}&cid=${item.cid || 0}&index=-1&prefix=${encodeURIComponent(item.prefix || "")}${title ? `&title=${encodeURIComponent(title)}` : ""}${chapterTitle ? `&chapter_title=${encodeURIComponent(chapterTitle)}` : ""}`,
+  );
+}
+
 function ListPage({ route }) {
   const mode = route.get("mode") || "latest";
   const page = Number(route.get("page") || 1);
@@ -284,12 +306,12 @@ function ListPage({ route }) {
 
   useEffect(() => {
     if (loading) {
-      return;
+      return noop;
     }
 
     const pending = readPendingListRestore();
     if (!pending || pending.routeKey !== routeKey || typeof pending.scrollY !== "number") {
-      return;
+      return noop;
     }
 
     let canceled = false;
@@ -338,23 +360,24 @@ function ListPage({ route }) {
     let canceled = false;
     setLoading(true);
     setErr("");
-    const url = mode === "latest" ? `/api/v1/mh/latest?page=${page}` : `/api/v1/mh/books?page=${page}`;
-    loadJSON(url)
-      .then((ret) => {
+    const loadPage = async () => {
+      try {
+        const url = mode === "latest" ? `/api/v1/mh/latest?page=${page}` : `/api/v1/mh/books?page=${page}`;
+        const ret = await loadJSON(url);
         if (!canceled) {
           setData(ret);
         }
-      })
-      .catch((e) => {
+      } catch (error) {
         if (!canceled) {
-          setErr(String(e.message || e));
+          setErr(String(error.message || error));
         }
-      })
-      .finally(() => {
+      } finally {
         if (!canceled) {
           setLoading(false);
         }
-      });
+      }
+    };
+    void loadPage();
     return () => {
       canceled = true;
     };
@@ -363,29 +386,6 @@ function ListPage({ route }) {
   const items = data.items || [];
   const totalPages = data.totalPages || data.total_pages || 1;
   const stateNode = renderState(loading, err, !items.length);
-
-  const openBook = (item) => {
-    saveScrollPosition(routeKey);
-    setPendingListRestore({
-      routeKey,
-      scrollY: window.scrollY,
-    });
-    const title = getBookTitle(item);
-    navigate(`view=book&org_id=${getOrgID(item)}${title ? `&title=${encodeURIComponent(title)}` : ""}`);
-  };
-
-  const openLatestChapter = (item) => {
-    saveScrollPosition(routeKey);
-    setPendingListRestore({
-      routeKey,
-      scrollY: window.scrollY,
-    });
-    const title = getLatestName(item);
-    const chapterTitle = getLatestChapter(item);
-    navigate(
-      `view=chapter&org_id=${getOrgID(item)}&cid=${item.cid || 0}&index=-1&prefix=${encodeURIComponent(item.prefix || "")}${title ? `&title=${encodeURIComponent(title)}` : ""}${chapterTitle ? `&chapter_title=${encodeURIComponent(chapterTitle)}` : ""}`,
-    );
-  };
 
   return (
     <main className="app-shell">
@@ -418,10 +418,11 @@ function ListPage({ route }) {
         {!loading && !err && mode === "books" ? (
           <section className="book-grid" aria-label="全部漫画">
             {items.map((item) => (
-              <article
+              <button
                 key={`${getOrgID(item)}-${item.cid || 0}`}
+                type="button"
                 className="book-card"
-                onClick={() => openBook(item)}
+                onClick={() => openBookRoute(routeKey, item)}
               >
                 <div className="cover-frame">
                   <img src={getCoverURL(item)} alt={getBookTitle(item)} />
@@ -430,7 +431,7 @@ function ListPage({ route }) {
                   <h3>{getBookTitle(item)}</h3>
                   <p>{getBookMeta(item)}</p>
                 </div>
-              </article>
+              </button>
             ))}
           </section>
         ) : null}
@@ -438,10 +439,11 @@ function ListPage({ route }) {
         {!loading && !err && mode === "latest" ? (
           <section className="latest-stack" aria-label="最新漫画">
             {items.map((item) => (
-              <article
+              <button
                 key={`${getOrgID(item)}-${item.cid || 0}`}
+                type="button"
                 className="latest-card"
-                onClick={() => openLatestChapter(item)}
+                onClick={() => openLatestChapterRoute(routeKey, item)}
               >
                 <div className="latest-cover-wrap">
                   <span className="badge-spot">最新</span>
@@ -454,14 +456,9 @@ function ListPage({ route }) {
                     <span>{getLatestChapter(item)}</span>
                   </div>
                   <p>{`本次更新：${getLatestChapter(item)}`}</p>
-                  <button type="button" className="cta-button" onClick={(event) => {
-                    event.stopPropagation();
-                    openLatestChapter(item);
-                  }}>
-                    追漫
-                  </button>
+                  <span className="cta-button" aria-hidden="true">追漫</span>
                 </div>
-              </article>
+              </button>
             ))}
           </section>
         ) : null}
@@ -499,22 +496,23 @@ function BookPage({ route }) {
   useEffect(() => {
     let canceled = false;
     setLoading(true);
-    loadJSON(`/api/v1/mh/book?org_id=${orgID}`)
-      .then((ret) => {
+    const loadBook = async () => {
+      try {
+        const ret = await loadJSON(`/api/v1/mh/book?org_id=${orgID}`);
         if (!canceled) {
           setData(ret);
         }
-      })
-      .catch((e) => {
+      } catch (error) {
         if (!canceled) {
-          setErr(String(e.message || e));
+          setErr(String(error.message || error));
         }
-      })
-      .finally(() => {
+      } finally {
         if (!canceled) {
           setLoading(false);
         }
-      });
+      }
+    };
+    void loadBook();
     return () => {
       canceled = true;
     };
@@ -588,22 +586,23 @@ function ChapterPage({ route }) {
   useEffect(() => {
     let canceled = false;
     setLoading(true);
-    loadJSON(`/api/v1/mh/chapter?org_id=${orgID}&cid=${cid}&index=${index}&prefix=${encodeURIComponent(prefix)}`)
-      .then((ret) => {
+    const loadChapter = async () => {
+      try {
+        const ret = await loadJSON(`/api/v1/mh/chapter?org_id=${orgID}&cid=${cid}&index=${index}&prefix=${encodeURIComponent(prefix)}`);
         if (!canceled) {
           setData(ret);
         }
-      })
-      .catch((e) => {
+      } catch (error) {
         if (!canceled) {
-          setErr(String(e.message || e));
+          setErr(String(error.message || error));
         }
-      })
-      .finally(() => {
+      } finally {
         if (!canceled) {
           setLoading(false);
         }
-      });
+      }
+    };
+    void loadChapter();
     return () => {
       canceled = true;
     };
@@ -618,13 +617,13 @@ function ChapterPage({ route }) {
   const hasPrev = Number.isFinite(prevCid) && prevCid > 0;
   const hasNext = Number.isFinite(nextCid) && nextCid > 0;
 
-  const openSiblingChapter = (nextCid, nextIndex) => {
-    if (!Number.isFinite(nextCid) || nextCid <= 0) {
+  const openSiblingChapter = (targetCid, nextIndex) => {
+    if (!Number.isFinite(targetCid) || targetCid <= 0) {
       return;
     }
     const title = route.get("title") || fallbackTitle;
     navigate(
-      `view=chapter&org_id=${orgID}&cid=${nextCid}&index=${nextIndex}&title=${encodeURIComponent(title)}&chapter_title=${encodeURIComponent(chapterName)}`,
+      `view=chapter&org_id=${orgID}&cid=${targetCid}&index=${nextIndex}&title=${encodeURIComponent(title)}&chapter_title=${encodeURIComponent(chapterName)}`,
     );
   };
 
@@ -644,12 +643,12 @@ function ChapterPage({ route }) {
   };
 
   return (
-    <main className="reader-shell" onClick={handleReaderTap}>
+    <main className="reader-shell">
       {loading ? <div className="reader-state">加载中...</div> : null}
       {err ? <div className="reader-state err">{err}</div> : null}
       {data ? (
         <>
-          <header className={`reader-topbar ${chromeVisible ? "visible" : "hidden"}`} onClick={stopToggle}>
+          <header className={`reader-topbar ${chromeVisible ? "visible" : "hidden"}`} onPointerDown={stopToggle}>
             <button type="button" className="reader-icon-button" onClick={() => goBack(`view=book&org_id=${orgID}&title=${encodeURIComponent(fallbackTitle)}`)}>
               <span className="hero-back-icon" aria-hidden="true" />
             </button>
@@ -659,13 +658,18 @@ function ChapterPage({ route }) {
             </button>
           </header>
 
-          <section className="reader-images">
+          <button
+            type="button"
+            className="reader-images reader-images-button"
+            onClick={handleReaderTap}
+            aria-label="切换阅读工具栏显示"
+          >
             {data.images?.map((img) => (
               <img key={img} src={img} alt={chapterName} />
             ))}
-          </section>
+          </button>
 
-          <footer className={`reader-bottombar ${chromeVisible ? "visible" : "hidden"}`} onClick={stopToggle}>
+          <footer className={`reader-bottombar ${chromeVisible ? "visible" : "hidden"}`} onPointerDown={stopToggle}>
             <button
               type="button"
               className="reader-nav-button"

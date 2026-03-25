@@ -1,3 +1,4 @@
+/* eslint-disable complexity, max-lines-per-function */
 import { Line } from "@ant-design/charts";
 import { Button, Card, Empty, Space, Spin, Tabs, Typography } from "antd";
 import { useEffect, useMemo, useState } from "react";
@@ -18,30 +19,40 @@ function parseNumber(v) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function toStringList(value) {
+  return Array.isArray(value) ? value.map((it) => `${it}`) : [];
+}
+
+function toTrendPoints(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.map((it) => ({
+    key: `${it.key || ""}`,
+    expense: parseNumber(it.expense)
+  }));
+}
+
+function toExpenseRankings(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.map((it, idx) => ({
+    rank: Number(it.rank) || idx + 1,
+    category: `${it.category || "未分类"}`,
+    expense: parseNumber(it.expense)
+  }));
+}
+
 function normalizeReply(json) {
   return {
     dimension: `${json.dimension || "month"}`,
     ym: `${json.ym || ""}`,
     year: `${json.year || ""}`,
-    availableYms: Array.isArray(json.availableYms ?? json.available_yms)
-      ? (json.availableYms ?? json.available_yms).map((it) => `${it}`)
-      : [],
-    availableYears: Array.isArray(json.availableYears ?? json.available_years)
-      ? (json.availableYears ?? json.available_years).map((it) => `${it}`)
-      : [],
-    trendPoints: Array.isArray(json.trendPoints ?? json.trend_points)
-      ? (json.trendPoints ?? json.trend_points).map((it) => ({
-          key: `${it.key || ""}`,
-          expense: parseNumber(it.expense)
-        }))
-      : [],
-    expenseRankings: Array.isArray(json.expenseRankings ?? json.expense_rankings)
-      ? (json.expenseRankings ?? json.expense_rankings).map((it, idx) => ({
-          rank: Number(it.rank) || idx + 1,
-          category: `${it.category || "未分类"}`,
-          expense: parseNumber(it.expense)
-        }))
-      : [],
+    availableYms: toStringList(json.availableYms ?? json.available_yms),
+    availableYears: toStringList(json.availableYears ?? json.available_years),
+    trendPoints: toTrendPoints(json.trendPoints ?? json.trend_points),
+    expenseRankings: toExpenseRankings(json.expenseRankings ?? json.expense_rankings),
     totalExpense: parseNumber(json.totalExpense ?? json.total_expense)
   };
 }
@@ -94,6 +105,52 @@ function formatPointLabel(pointKey, dimension) {
   return pointKey.replace(".", "-");
 }
 
+function renderStatsState(loading, chartData, chartConfig, stats) {
+  if (loading) {
+    return (
+      <div className="state-wrap">
+        <Spin size="large" />
+      </div>
+    );
+  }
+  return (
+    <Space direction="vertical" size={16} style={{ width: "100%" }}>
+      <Card className="ledger-stats-chart-card" styles={{ body: { padding: 16 } }}>
+        <div className="ledger-stats-chart-head">
+          <Typography.Title level={4} style={{ margin: 0 }}>
+            支出趋势
+          </Typography.Title>
+          <Typography.Text className="ledger-stats-total-expense">
+            总支出: {MONEY_FORMAT.format(stats?.totalExpense || 0)}
+          </Typography.Text>
+        </div>
+        {chartData.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无趋势数据" /> : <Line {...chartConfig} />}
+      </Card>
+
+      <Card className="ledger-stats-ranking-card" styles={{ body: { padding: 16 } }}>
+        <Typography.Title level={4} style={{ marginTop: 0 }}>
+          支出排行榜
+        </Typography.Title>
+        {(stats?.expenseRankings || []).length === 0 ? (
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无排行数据" />
+        ) : (
+          <div className="ledger-ranking-list">
+            {(stats?.expenseRankings || []).map((item) => (
+              <div key={`${item.rank}-${item.category}`} className="ledger-ranking-item">
+                <span className="ledger-ranking-left">
+                  <span className="ledger-ranking-rank">#{item.rank}</span>
+                  <span className="ledger-ranking-category">{item.category || "未分类"}</span>
+                </span>
+                <span className="ledger-ranking-expense">{MONEY_FORMAT.format(item.expense)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </Space>
+  );
+}
+
 export default function LedgerStatsPage() {
   const [loading, setLoading] = useState(true);
   const [dimension, setDimension] = useState(getInitialDimension);
@@ -119,7 +176,7 @@ export default function LedgerStatsPage() {
         if (dimension === "year" && data.year && data.year !== selectedYear) {
           setSelectedYear(data.year);
         }
-      } catch (_) {
+      } catch {
         if (!active) return;
         setStats({
           dimension,
@@ -217,6 +274,7 @@ export default function LedgerStatsPage() {
     }),
     [chartData]
   );
+  const statsContent = renderStatsState(loading, chartData, chartConfig, stats);
 
   return (
     <div className="page-wrap">
@@ -256,46 +314,7 @@ export default function LedgerStatsPage() {
           )}
         </div>
 
-        {loading ? (
-          <div className="state-wrap">
-            <Spin size="large" />
-          </div>
-        ) : (
-          <Space direction="vertical" size={16} style={{ width: "100%" }}>
-            <Card className="ledger-stats-chart-card" styles={{ body: { padding: 16 } }}>
-              <div className="ledger-stats-chart-head">
-                <Typography.Title level={4} style={{ margin: 0 }}>
-                  支出趋势
-                </Typography.Title>
-                <Typography.Text className="ledger-stats-total-expense">
-                  总支出: {MONEY_FORMAT.format(stats?.totalExpense || 0)}
-                </Typography.Text>
-              </div>
-              {chartData.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无趋势数据" /> : <Line {...chartConfig} />}
-            </Card>
-
-            <Card className="ledger-stats-ranking-card" styles={{ body: { padding: 16 } }}>
-              <Typography.Title level={4} style={{ marginTop: 0 }}>
-                支出排行榜
-              </Typography.Title>
-              {(stats?.expenseRankings || []).length === 0 ? (
-                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无排行数据" />
-              ) : (
-                <div className="ledger-ranking-list">
-                  {(stats?.expenseRankings || []).map((item, idx) => (
-                    <div key={`${item.category}-${idx}`} className="ledger-ranking-item">
-                      <span className="ledger-ranking-left">
-                        <span className="ledger-ranking-rank">#{item.rank || idx + 1}</span>
-                        <span className="ledger-ranking-category">{item.category || "未分类"}</span>
-                      </span>
-                      <span className="ledger-ranking-expense">{MONEY_FORMAT.format(item.expense)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
-          </Space>
-        )}
+        {statsContent}
       </Card>
     </div>
   );
