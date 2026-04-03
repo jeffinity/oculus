@@ -79,6 +79,13 @@ type ParsedRow struct {
 	Values []string
 }
 
+type sectionRowItem struct {
+	FileID     string
+	Filename   string
+	RowNo      int32
+	ValuesJSON string
+}
+
 type SquirrelRepo struct {
 	data *Data
 	log  *log.Helper
@@ -196,68 +203,21 @@ func (r *SquirrelRepo) SaveSectionFile(ctx context.Context, taskID, section, fil
 		// 强制销售明细单文件模式：新文件覆盖旧文件。
 		replaceOld = true
 	}
-	normalizedHeader := trimTailBlanks(header)
-	maxColumns := len(normalizedHeader)
-	if maxColumns == 0 {
-		for i := range rows {
-			if len(rows[i].Values) > maxColumns {
-				maxColumns = len(rows[i].Values)
-			}
-		}
-	}
-	if maxColumns < len(normalizedHeader) {
-		maxColumns = len(normalizedHeader)
-	}
-
-	headerJSON := marshalStringSlice(normalizedHeader)
+	normalizedHeader, maxColumns := normalizeSectionHeader(header, rows)
 	now := time.Now()
-	newImport := &SquirrelSectionImport{
-		FileID:      ulid.Make().String(),
-		TaskID:      taskID,
-		Section:     section,
-		Filename:    filename,
-		SheetName:   sheetName,
-		ColumnCount: int32(maxColumns),
-		TotalRows:   int32(len(rows)),
-		HeaderJSON:  headerJSON,
-		CreatedAt:   now,
-		UpdatedAt:   now,
-	}
+	newImport := buildSectionImport(taskID, section, filename, sheetName, normalizedHeader, maxColumns, len(rows), now)
 
 	err := r.data.pg.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if replaceOld {
-			oldImports := make([]SquirrelSectionImport, 0)
-			if err := tx.Where("task_id = ? AND section = ?", taskID, section).Find(&oldImports).Error; err != nil {
+			if err := deleteSectionImports(tx, taskID, section, ""); err != nil {
 				return err
-			}
-			for i := range oldImports {
-				if err := tx.Where("file_id = ?", oldImports[i].FileID).Delete(&SquirrelSectionRow{}).Error; err != nil {
-					return err
-				}
-				if err := tx.Where("file_id = ?", oldImports[i].FileID).Delete(&SquirrelSectionImport{}).Error; err != nil {
-					return err
-				}
 			}
 		}
 
 		if err := tx.Create(newImport).Error; err != nil {
 			return err
 		}
-
-		if len(rows) == 0 {
-			return nil
-		}
-
-		batch := make([]SquirrelSectionRow, 0, len(rows))
-		for i := range rows {
-			batch = append(batch, SquirrelSectionRow{
-				FileID:     newImport.FileID,
-				RowNo:      rows[i].RowNo,
-				ValuesJSON: marshalStringSlice(rows[i].Values),
-				CreatedAt:  now,
-			})
-		}
-		return tx.CreateInBatches(batch, 200).Error
+		return saveSectionRowsBatch(tx, newImport.FileID, rows, now)
 	})
 	if err != nil {
 		return nil, err
@@ -322,23 +282,91 @@ func (r *SquirrelRepo) ListSectionRows(ctx context.Context, taskID, section stri
 		}
 	}
 
-	type rowItem struct {
-		FileID     string
-		Filename   string
-		RowNo      int32
-		ValuesJSON string
+	page, pageSize = normalizeSectionPagination(page, pageSize)
+	total, err := r.countSectionRows(ctx, taskID, section)
+	if err != nil {
+		return nil, err
 	}
+	offset := (page - 1) * pageSize
 
-	var total int64
-	query := r.data.pg.WithContext(ctx).
-		Table(sectionRowTableName+" AS r").
-		Joins("JOIN "+sectionImportTableName+" AS i ON r.file_id = i.file_id").
-		Where("i.task_id = ? AND i.section = ?", taskID, section)
-
-	if err = query.Count(&total).Error; err != nil {
+	dbRows := make([]sectionRowItem, 0, pageSize)
+	err = r.listSectionRowItems(ctx, taskID, section, offset, pageSize, &dbRows)
+	if err != nil {
 		return nil, err
 	}
 
+	rows := toSectionRowData(dbRows)
+	return &SectionPageResult{Import: &latest, Imports: imports, Rows: rows, Total: total, MaxCols: maxCols}, nil
+}
+
+func normalizeSectionHeader(header []string, rows []ParsedRow) ([]string, int) {
+	normalizedHeader := trimTailBlanks(header)
+	maxColumns := len(normalizedHeader)
+	for i := range rows {
+		if len(rows[i].Values) > maxColumns {
+			maxColumns = len(rows[i].Values)
+		}
+	}
+	return normalizedHeader, maxColumns
+}
+
+func buildSectionImport(
+	taskID, section, filename, sheetName string,
+	header []string,
+	maxColumns, totalRows int,
+	now time.Time,
+) *SquirrelSectionImport {
+	return &SquirrelSectionImport{
+		FileID:      ulid.Make().String(),
+		TaskID:      taskID,
+		Section:     section,
+		Filename:    filename,
+		SheetName:   sheetName,
+		ColumnCount: int32(maxColumns),
+		TotalRows:   int32(totalRows),
+		HeaderJSON:  marshalStringSlice(header),
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+}
+
+func deleteSectionImports(tx *gorm.DB, taskID, section, filename string) error {
+	oldImports := make([]SquirrelSectionImport, 0)
+	query := tx.Where("task_id = ? AND section = ?", taskID, section)
+	if filename != "" {
+		query = query.Where("filename = ?", filename)
+	}
+	if err := query.Find(&oldImports).Error; err != nil {
+		return err
+	}
+	for i := range oldImports {
+		if err := tx.Where("file_id = ?", oldImports[i].FileID).Delete(&SquirrelSectionRow{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("file_id = ?", oldImports[i].FileID).Delete(&SquirrelSectionImport{}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func saveSectionRowsBatch(tx *gorm.DB, fileID string, rows []ParsedRow, now time.Time) error {
+	if len(rows) == 0 {
+		return nil
+	}
+	batch := make([]SquirrelSectionRow, 0, len(rows))
+	for i := range rows {
+		batch = append(batch, SquirrelSectionRow{
+			FileID:     fileID,
+			RowNo:      rows[i].RowNo,
+			ValuesJSON: marshalStringSlice(rows[i].Values),
+			CreatedAt:  now,
+		})
+	}
+	return tx.CreateInBatches(batch, 200).Error
+}
+
+func normalizeSectionPagination(page, pageSize int) (int, int) {
 	if page < 1 {
 		page = 1
 	}
@@ -348,32 +376,42 @@ func (r *SquirrelRepo) ListSectionRows(ctx context.Context, taskID, section stri
 	if pageSize > 200 {
 		pageSize = 200
 	}
-	offset := (page - 1) * pageSize
+	return page, pageSize
+}
 
-	dbRows := make([]rowItem, 0, pageSize)
-	err = r.data.pg.WithContext(ctx).
+func (r *SquirrelRepo) countSectionRows(ctx context.Context, taskID, section string) (int64, error) {
+	var total int64
+	err := r.data.pg.WithContext(ctx).
+		Table(sectionRowTableName+" AS r").
+		Joins("JOIN "+sectionImportTableName+" AS i ON r.file_id = i.file_id").
+		Where("i.task_id = ? AND i.section = ?", taskID, section).
+		Count(&total).Error
+	return total, err
+}
+
+func (r *SquirrelRepo) listSectionRowItems(ctx context.Context, taskID, section string, offset, limit int, out any) error {
+	return r.data.pg.WithContext(ctx).
 		Table(sectionRowTableName+" AS r").
 		Select("r.file_id AS file_id, i.filename AS filename, r.row_no AS row_no, r.values_json AS values_json").
 		Joins("JOIN "+sectionImportTableName+" AS i ON r.file_id = i.file_id").
 		Where("i.task_id = ? AND i.section = ?", taskID, section).
 		Order("i.updated_at DESC, i.file_id DESC, r.row_no ASC").
 		Offset(offset).
-		Limit(pageSize).
-		Find(&dbRows).Error
-	if err != nil {
-		return nil, err
-	}
+		Limit(limit).
+		Find(out).Error
+}
 
-	rows := make([]SquirrelSectionRowData, 0, len(dbRows))
-	for i := range dbRows {
+func toSectionRowData(items []sectionRowItem) []SquirrelSectionRowData {
+	rows := make([]SquirrelSectionRowData, 0, len(items))
+	for i := range items {
 		rows = append(rows, SquirrelSectionRowData{
-			FileID:   dbRows[i].FileID,
-			Filename: dbRows[i].Filename,
-			RowNo:    dbRows[i].RowNo,
-			Values:   unmarshalStringSlice(dbRows[i].ValuesJSON),
+			FileID:   items[i].FileID,
+			Filename: items[i].Filename,
+			RowNo:    items[i].RowNo,
+			Values:   unmarshalStringSlice(items[i].ValuesJSON),
 		})
 	}
-	return &SectionPageResult{Import: &latest, Imports: imports, Rows: rows, Total: total, MaxCols: maxCols}, nil
+	return rows
 }
 
 func ParseHeader(headerJSON string) []string {

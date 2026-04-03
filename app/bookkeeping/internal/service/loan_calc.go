@@ -586,6 +586,13 @@ func (c *loanComputation) summaryAt(now time.Time) (loanSummaryData, error) {
 	if len(c.records) == 0 {
 		return s, nil
 	}
+	lastPaidDue := c.applyPaidRecords(now, &s)
+	c.applyPrepayments(now, lastPaidDue, &s)
+	c.finalizeSummary(&s)
+	return s, nil
+}
+
+func (c *loanComputation) applyPaidRecords(now time.Time, s *loanSummaryData) time.Time {
 	lastPaidDue := time.Time{}
 	for i := range c.records {
 		if c.records[i].DueDate.After(now) {
@@ -601,6 +608,10 @@ func (c *loanComputation) summaryAt(now time.Time) (loanSummaryData, error) {
 	if s.RepaidMonths == 0 {
 		s.RemainingPrincipal = c.initialAmount
 	}
+	return lastPaidDue
+}
+
+func (c *loanComputation) applyPrepayments(now, lastPaidDue time.Time, s *loanSummaryData) {
 	for i := range c.prepayments {
 		if c.prepayments[i].date.After(now) {
 			break
@@ -611,6 +622,9 @@ func (c *loanComputation) summaryAt(now time.Time) (loanSummaryData, error) {
 		s.CumulativePrincipal += c.prepayments[i].amount
 		s.RemainingPrincipal -= c.prepayments[i].amount
 	}
+}
+
+func (c *loanComputation) finalizeSummary(s *loanSummaryData) {
 	s.CumulativePrincipal = round2(s.CumulativePrincipal)
 	if s.RemainingPrincipal < 0 {
 		s.RemainingPrincipal = 0
@@ -624,13 +638,11 @@ func (c *loanComputation) summaryAt(now time.Time) (loanSummaryData, error) {
 	if !estimatedPayoffDate.IsZero() && !scheduledPayoffDate.IsZero() && estimatedPayoffDate.Before(scheduledPayoffDate) {
 		s.ShortenedMonths = ymFromDate(scheduledPayoffDate).DiffMonths(ymFromDate(estimatedPayoffDate))
 	}
-	totalInterest := c.totalPlannedInterest()
-	remainingInterest := totalInterest - s.CumulativeInterest
+	remainingInterest := c.totalPlannedInterest() - s.CumulativeInterest
 	if remainingInterest < 0 {
 		remainingInterest = 0
 	}
 	s.RemainingInterest = round2(remainingInterest)
-	return s, nil
 }
 
 func (c *loanComputation) futurePlans(now time.Time, months int) []loanRepaymentRecord {

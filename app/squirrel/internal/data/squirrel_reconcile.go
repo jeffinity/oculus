@@ -311,7 +311,36 @@ func (r *SquirrelRepo) UpsertManualReview(
 	ignored bool,
 ) (*SquirrelManualReview, error) {
 	now := time.Now()
-	item := &SquirrelManualReview{
+	item := buildManualReview(taskID, filename, rowNo, refundQty, refundAmount, remark, ignored, now)
+
+	if err := r.data.pg.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := upsertManualReviewRecord(tx, item, now); err != nil {
+			return err
+		}
+		if item.Remark == "" {
+			return nil
+		}
+		return upsertManualRemarkOption(tx, item.TaskID, item.Remark, now)
+	}); err != nil {
+		return nil, err
+	}
+	out := &SquirrelManualReview{}
+	if err := r.data.pg.WithContext(ctx).
+		Where("task_id = ? AND filename = ? AND row_no = ?", taskID, item.Filename, rowNo).
+		First(out).Error; err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func buildManualReview(
+	taskID, filename string,
+	rowNo int32,
+	refundQty, refundAmount, remark string,
+	ignored bool,
+	now time.Time,
+) *SquirrelManualReview {
+	return &SquirrelManualReview{
 		TaskID:       taskID,
 		Filename:     strings.TrimSpace(filename),
 		RowNo:        rowNo,
@@ -325,59 +354,48 @@ func (r *SquirrelRepo) UpsertManualReview(
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
+}
 
-	if err := r.data.pg.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.
-			Clauses(clause.OnConflict{
-				Columns: []clause.Column{
-					{Name: "task_id"},
-					{Name: "filename"},
-					{Name: "row_no"},
-				},
-				DoUpdates: clause.Assignments(map[string]any{
-					"refund_qty":    item.RefundQty,
-					"refund_amount": item.RefundAmount,
-					"settle_qty":    item.SettleQty,
-					"settle_amount": item.SettleAmount,
-					"remark":        item.Remark,
-					"review_type":   item.ReviewType,
-					"ignored":       item.Ignored,
-					"updated_at":    now,
-				}),
-			}).
-			Create(item).Error; err != nil {
-			return err
-		}
-		if item.Remark == "" {
-			return nil
-		}
-		remarkItem := &SquirrelManualRemarkOption{
-			TaskID:    item.TaskID,
-			Content:   item.Remark,
-			UsedCount: 1,
-			CreatedAt: now,
-			UpdatedAt: now,
-		}
-		return tx.Clauses(clause.OnConflict{
+func upsertManualReviewRecord(tx *gorm.DB, item *SquirrelManualReview, now time.Time) error {
+	return tx.
+		Clauses(clause.OnConflict{
 			Columns: []clause.Column{
 				{Name: "task_id"},
-				{Name: "content"},
+				{Name: "filename"},
+				{Name: "row_no"},
 			},
 			DoUpdates: clause.Assignments(map[string]any{
-				"used_count": gorm.Expr(manualRemarkOptionTableName + ".used_count + 1"),
-				"updated_at": now,
+				"refund_qty":    item.RefundQty,
+				"refund_amount": item.RefundAmount,
+				"settle_qty":    item.SettleQty,
+				"settle_amount": item.SettleAmount,
+				"remark":        item.Remark,
+				"review_type":   item.ReviewType,
+				"ignored":       item.Ignored,
+				"updated_at":    now,
 			}),
-		}).Create(remarkItem).Error
-	}); err != nil {
-		return nil, err
+		}).
+		Create(item).Error
+}
+
+func upsertManualRemarkOption(tx *gorm.DB, taskID, remark string, now time.Time) error {
+	remarkItem := &SquirrelManualRemarkOption{
+		TaskID:    taskID,
+		Content:   remark,
+		UsedCount: 1,
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
-	out := &SquirrelManualReview{}
-	if err := r.data.pg.WithContext(ctx).
-		Where("task_id = ? AND filename = ? AND row_no = ?", taskID, item.Filename, rowNo).
-		First(out).Error; err != nil {
-		return nil, err
-	}
-	return out, nil
+	return tx.Clauses(clause.OnConflict{
+		Columns: []clause.Column{
+			{Name: "task_id"},
+			{Name: "content"},
+		},
+		DoUpdates: clause.Assignments(map[string]any{
+			"used_count": gorm.Expr(manualRemarkOptionTableName + ".used_count + 1"),
+			"updated_at": now,
+		}),
+	}).Create(remarkItem).Error
 }
 
 func (r *SquirrelRepo) ListManualRemarkOptions(ctx context.Context, taskID string, limit int) ([]SquirrelManualRemarkOption, error) {

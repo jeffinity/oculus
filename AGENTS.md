@@ -127,6 +127,14 @@
   - `.build/`
 - 后续新增前端应用时，默认接入这套根级 lint 配置，不再各自维护一份独立规则，除非确有框架差异。
 
+### 4.4 代码质量强制流程
+
+- 任何代码改动完成后，必须严格按以下先后顺序执行质量步骤，不允许跳过或调换顺序：
+  1. 先执行：`task format`
+  2. 再执行：`task lint`
+- 只有在 `task format` 完成后，才允许进入 `task lint`。
+- 若 `task lint` 失败，必须先修复问题；必要时重新执行 `task format`，然后再次执行 `task lint`，直到无报错。
+
 ## 5. 建议开发流程（本仓库）
 
 1. 首次进入仓库：
@@ -137,9 +145,9 @@
    - `task conf -- app/<name>`
 4. 修改依赖注入相关文件（provider/wire）后：
    - `task wire -- app/<name>`
-5. 提交前建议：
-   - `task format`
-   - `task lint`
+5. 代码修改完成后的必做质量步骤：
+   - 先执行 `task format`
+   - 再执行 `task lint`
    - 若改动包含 `web/` 前端代码，还需执行对应 `npm run lint:web[:fix]` 并确认无报错
 6. 本地或目标平台构建：
    - `task build -- app/<name>`

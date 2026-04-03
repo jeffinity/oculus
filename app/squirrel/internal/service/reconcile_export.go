@@ -59,34 +59,14 @@ func (s *SquirrelService) ExportReconcileDetail(ctx context.Context, taskID, run
 		return nil, "", status.Error(codes.FailedPrecondition, "sales import not found")
 	}
 
-	defaultFilename := strings.TrimSpace(salesImport.Filename)
-	if defaultFilename != "" {
-		for i := range rows {
-			if strings.TrimSpace(rows[i].Filename) == "" {
-				rows[i].Filename = defaultFilename
-			}
-		}
+	if err = fillMissingReconcileFilenames(rows, strings.TrimSpace(salesImport.Filename)); err != nil {
+		return nil, "", err
+	}
+	if err = s.attachManualReviews(ctx, taskID, run.RunID, rows, "export reconcile detail failed"); err != nil {
+		return nil, "", err
 	}
 
-	manualMap, err := s.repo.ListManualReviewsByRows(ctx, taskID, rows)
-	if err != nil {
-		s.log.Errorf("list manual reviews failed task_id=%s run_id=%s err=%v", taskID, run.RunID, err)
-		return nil, "", status.Error(codes.Internal, "export reconcile detail failed")
-	}
-	for i := range rows {
-		if review, ok := manualMap[buildManualReviewKey(rows[i].Filename, rows[i].RowNo)]; ok {
-			cp := review
-			rows[i].ManualReview = &cp
-		}
-	}
-
-	columns := data.ParseHeader(run.ResultColumnsJSON)
-	salesColumns := data.NormalizeColumnNames(data.ParseHeader(salesImport.HeaderJSON), int(salesImport.ColumnCount))
-	if len(salesColumns) > 0 {
-		columns = salesColumns
-	} else {
-		columns = data.NormalizeColumnNames(columns, len(columns))
-	}
+	columns := resolveExportColumns(run, salesImport)
 
 	content, err := buildReconcileDetailWorkbook(rows, columns, salesImport.SheetName)
 	if err != nil {
@@ -127,10 +107,56 @@ func buildReconcileDetailWorkbook(rows []data.ReconcileRowData, columns []string
 		targetSheet = "明细表"
 	}
 	defaultSheet := file.GetSheetName(0)
-	file.SetSheetName(defaultSheet, targetSheet)
+	if err := file.SetSheetName(defaultSheet, targetSheet); err != nil {
+		return nil, err
+	}
 
+	headers := buildReconcileExportHeaders(columns)
+	if err := writeWorkbookHeaders(file, targetSheet, headers); err != nil {
+		return nil, err
+	}
+
+	colIndexShipQty := findColumnIndexForReconcile(columns, []string{"实发数量"})
+	colIndexBuyerPaid := findColumnIndexForReconcile(columns, []string{"买家实付"})
+	if err := writeWorkbookRows(file, targetSheet, rows, columns, colIndexShipQty, colIndexBuyerPaid); err != nil {
+		return nil, err
+	}
+
+	if err := styleReconcileWorkbook(file, targetSheet, headers, len(columns), len(rows)); err != nil {
+		return nil, err
+	}
+
+	buf, err := file.WriteToBuffer()
+	if err != nil {
+		return nil, err
+	}
+	return bytes.Clone(buf.Bytes()), nil
+}
+
+func fillMissingReconcileFilenames(rows []data.ReconcileRowData, defaultFilename string) error {
+	if defaultFilename == "" {
+		return nil
+	}
+	for i := range rows {
+		if strings.TrimSpace(rows[i].Filename) == "" {
+			rows[i].Filename = defaultFilename
+		}
+	}
+	return nil
+}
+
+func resolveExportColumns(run *data.SquirrelReconcileRun, salesImport *data.SquirrelSectionImport) []string {
+	columns := data.ParseHeader(run.ResultColumnsJSON)
+	salesColumns := data.NormalizeColumnNames(data.ParseHeader(salesImport.HeaderJSON), int(salesImport.ColumnCount))
+	if len(salesColumns) > 0 {
+		return salesColumns
+	}
+	return data.NormalizeColumnNames(columns, len(columns))
+}
+
+func buildReconcileExportHeaders(columns []string) []string {
 	headers := append([]string{}, columns...)
-	headers = append(headers,
+	return append(headers,
 		exportSupplementPrefix+"匹配渠道",
 		exportSupplementPrefix+"匹配行",
 		exportSupplementPrefix+"匹配总收入",
@@ -140,34 +166,53 @@ func buildReconcileDetailWorkbook(rows []data.ReconcileRowData, columns []string
 		exportSupplementPrefix+"结算数量",
 		exportSupplementPrefix+"结算金额",
 	)
+}
 
+func writeWorkbookHeaders(file *excelize.File, sheet string, headers []string) error {
 	for idx, header := range headers {
 		cell, _ := excelize.CoordinatesToCellName(idx+1, 1)
-		if err := file.SetCellValue(targetSheet, cell, header); err != nil {
-			return nil, err
+		if err := file.SetCellValue(sheet, cell, header); err != nil {
+			return err
 		}
 	}
+	return nil
+}
 
-	colIndexShipQty := findColumnIndexForReconcile(columns, []string{"实发数量"})
-	colIndexBuyerPaid := findColumnIndexForReconcile(columns, []string{"买家实付"})
-
+func writeWorkbookRows(
+	file *excelize.File,
+	sheet string,
+	rows []data.ReconcileRowData,
+	columns []string,
+	shipQtyColIndex, buyerPaidColIndex int,
+) error {
 	for rowIdx, row := range rows {
-		values := padValues(row.Values, len(columns))
-		record := append([]any{}, stringSliceToAnySlice(values)...)
-		record = append(record, buildExportSupplementValues(row, colIndexShipQty, colIndexBuyerPaid)...)
+		record := buildWorkbookRowRecord(row, columns, shipQtyColIndex, buyerPaidColIndex)
 		axis, _ := excelize.CoordinatesToCellName(1, rowIdx+2)
-		if err := file.SetSheetRow(targetSheet, axis, &record); err != nil {
-			return nil, err
+		if err := file.SetSheetRow(sheet, axis, &record); err != nil {
+			return err
 		}
 	}
+	return nil
+}
 
+func buildWorkbookRowRecord(
+	row data.ReconcileRowData,
+	columns []string,
+	shipQtyColIndex, buyerPaidColIndex int,
+) []any {
+	values := padValues(row.Values, len(columns))
+	record := append([]any{}, stringSliceToAnySlice(values)...)
+	return append(record, buildExportSupplementValues(row, shipQtyColIndex, buyerPaidColIndex)...)
+}
+
+func styleReconcileWorkbook(file *excelize.File, sheet string, headers []string, columnCount, rowCount int) error {
 	lastCol, _ := excelize.ColumnNumberToName(len(headers))
-	if err := file.SetColWidth(targetSheet, "A", lastCol, 16); err != nil {
-		return nil, err
+	if err := file.SetColWidth(sheet, "A", lastCol, 16); err != nil {
+		return err
 	}
-	matchLineCol, _ := excelize.ColumnNumberToName(len(columns) + 2)
-	if err := file.SetColWidth(targetSheet, matchLineCol, matchLineCol, 42); err != nil {
-		return nil, err
+	matchLineCol, _ := excelize.ColumnNumberToName(columnCount + 2)
+	if err := file.SetColWidth(sheet, matchLineCol, matchLineCol, 42); err != nil {
+		return err
 	}
 	styleID, err := file.NewStyle(&excelize.Style{
 		Alignment: &excelize.Alignment{
@@ -177,30 +222,22 @@ func buildReconcileDetailWorkbook(rows []data.ReconcileRowData, columns []string
 		},
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
-	if err := file.SetCellStyle(targetSheet, "A1", fmt.Sprintf("%s%d", lastCol, len(rows)+1), styleID); err != nil {
-		return nil, err
+	if err := file.SetCellStyle(sheet, "A1", fmt.Sprintf("%s%d", lastCol, rowCount+1), styleID); err != nil {
+		return err
 	}
-	if err := file.SetRowHeight(targetSheet, 1, 24); err != nil {
-		return nil, err
+	if err := file.SetRowHeight(sheet, 1, 24); err != nil {
+		return err
 	}
-	if err := file.SetPanes(targetSheet, &excelize.Panes{
+	return file.SetPanes(sheet, &excelize.Panes{
 		Freeze:      true,
 		Split:       false,
 		XSplit:      0,
 		YSplit:      1,
 		TopLeftCell: "A2",
 		ActivePane:  "bottomLeft",
-	}); err != nil {
-		return nil, err
-	}
-
-	buf, err := file.WriteToBuffer()
-	if err != nil {
-		return nil, err
-	}
-	return bytes.Clone(buf.Bytes()), nil
+	})
 }
 
 func buildExportSupplementValues(row data.ReconcileRowData, shipQtyColIndex, buyerPaidColIndex int) []any {

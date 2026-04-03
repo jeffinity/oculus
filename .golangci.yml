@@ -81,6 +81,7 @@ skip-dirs:
   - dist
   - build
   - .git
+  - node_modules
 
 skip-files:
   - ".*_test\\.go"
@@ -98,6 +99,8 @@ issues:
     - text: "SA1019"
       linters:
         - staticcheck
+    - path: node_modules/.*
+      text: ".*"
     - path: vendor/.*
       text: ".*"
     - path: deprecated/.*

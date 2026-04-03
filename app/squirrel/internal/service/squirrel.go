@@ -186,6 +186,20 @@ func (s *SquirrelService) ListSectionRows(ctx context.Context, req *squirrelv1.L
 		return nil, status.Error(codes.InvalidArgument, "unsupported section")
 	}
 
+	page, pageSize := normalizeSectionListParams(req)
+
+	res, err := s.repo.ListSectionRows(ctx, taskID, section, page, pageSize)
+	if err != nil {
+		if errors.Is(err, data.ErrSectionImportNotFound()) {
+			return emptySectionRowsReply(page, pageSize), nil
+		}
+		s.log.Errorf("list section rows failed task_id=%s section=%s err=%v", taskID, section, err)
+		return nil, status.Error(codes.Internal, "list section rows failed")
+	}
+	return buildSectionRowsReply(res, page, pageSize), nil
+}
+
+func normalizeSectionListParams(req *squirrelv1.ListSectionRowsRequest) (int, int) {
 	page := int(req.GetPage())
 	if page < 1 {
 		page = 1
@@ -197,47 +211,51 @@ func (s *SquirrelService) ListSectionRows(ctx context.Context, req *squirrelv1.L
 	if pageSize > 200 {
 		pageSize = 200
 	}
+	return page, pageSize
+}
 
-	res, err := s.repo.ListSectionRows(ctx, taskID, section, page, pageSize)
-	if err != nil {
-		if errors.Is(err, data.ErrSectionImportNotFound()) {
-			return &squirrelv1.ListSectionRowsReply{
-				Rows:     []*squirrelv1.SheetRow{},
-				Columns:  []string{},
-				Page:     uint32(page),
-				PageSize: uint32(pageSize),
-				Total:    0,
-			}, nil
-		}
-		s.log.Errorf("list section rows failed task_id=%s section=%s err=%v", taskID, section, err)
-		return nil, status.Error(codes.Internal, "list section rows failed")
+func emptySectionRowsReply(page, pageSize int) *squirrelv1.ListSectionRowsReply {
+	return &squirrelv1.ListSectionRowsReply{
+		Rows:     []*squirrelv1.SheetRow{},
+		Columns:  []string{},
+		Page:     uint32(page),
+		PageSize: uint32(pageSize),
+		Total:    0,
 	}
+}
 
+func buildSectionRowsReply(res *data.SectionPageResult, page, pageSize int) *squirrelv1.ListSectionRowsReply {
 	header := data.ParseHeader(res.Import.HeaderJSON)
 	columns := data.NormalizeColumnNames(header, res.MaxCols)
-	rows := make([]*squirrelv1.SheetRow, 0, len(res.Rows))
-	for i := range res.Rows {
-		values := padValues(res.Rows[i].Values, len(columns))
-		rows = append(rows, &squirrelv1.SheetRow{
-			RowNo:    uint32(res.Rows[i].RowNo),
-			Values:   values,
-			Filename: res.Rows[i].Filename,
-		})
-	}
-	summaries := make([]*squirrelv1.SectionSummary, 0, len(res.Imports))
-	for i := range res.Imports {
-		summaries = append(summaries, toProtoSectionSummary(res.Imports[i]))
-	}
-
 	return &squirrelv1.ListSectionRowsReply{
 		Summary:   toProtoSectionSummary(*res.Import),
-		Summaries: summaries,
+		Summaries: toProtoSectionSummaries(res.Imports),
 		Columns:   columns,
-		Rows:      rows,
+		Rows:      toProtoSheetRows(res.Rows, len(columns)),
 		Page:      uint32(page),
 		PageSize:  uint32(pageSize),
 		Total:     uint32(res.Total),
-	}, nil
+	}
+}
+
+func toProtoSheetRows(items []data.SquirrelSectionRowData, columnCount int) []*squirrelv1.SheetRow {
+	rows := make([]*squirrelv1.SheetRow, 0, len(items))
+	for i := range items {
+		rows = append(rows, &squirrelv1.SheetRow{
+			RowNo:    uint32(items[i].RowNo),
+			Values:   padValues(items[i].Values, columnCount),
+			Filename: items[i].Filename,
+		})
+	}
+	return rows
+}
+
+func toProtoSectionSummaries(items []data.SquirrelSectionImport) []*squirrelv1.SectionSummary {
+	summaries := make([]*squirrelv1.SectionSummary, 0, len(items))
+	for i := range items {
+		summaries = append(summaries, toProtoSectionSummary(items[i]))
+	}
+	return summaries
 }
 
 func (s *SquirrelService) ClearSectionData(ctx context.Context, req *squirrelv1.ClearSectionDataRequest) (*squirrelv1.ClearSectionDataReply, error) {

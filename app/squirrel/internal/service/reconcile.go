@@ -42,6 +42,14 @@ type reconcileMatchItem struct {
 	Detail   []data.ReconcileKV
 }
 
+type reconcileDataset struct {
+	salesRows     []data.SquirrelSectionRowData
+	wechatRows    []data.SquirrelSectionRowData
+	alipayRows    []data.SquirrelSectionRowData
+	wechatColumns []string
+	alipayColumns []string
+}
+
 func (s *SquirrelService) StartReconcile(ctx context.Context, req *squirrelv1.StartReconcileRequest) (*squirrelv1.StartReconcileReply, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "request is required")
@@ -134,85 +142,25 @@ func (s *SquirrelService) ListReconcileRows(ctx context.Context, req *squirrelv1
 		return nil, status.Error(codes.InvalidArgument, "task_id is required")
 	}
 
-	var (
-		run *data.SquirrelReconcileRun
-		err error
-	)
-	runID := strings.TrimSpace(req.GetRunId())
-	if runID != "" {
-		run, err = s.repo.GetReconcileRunByID(ctx, taskID, runID)
-	} else {
-		run, err = s.repo.GetLatestReconcileRunByTask(ctx, taskID)
-	}
+	run, err := s.loadCompletedReconcileRun(ctx, taskID, strings.TrimSpace(req.GetRunId()), "list reconcile rows failed")
 	if err != nil {
-		s.log.Errorf("query reconcile run failed task_id=%s run_id=%s err=%v", taskID, runID, err)
-		return nil, status.Error(codes.Internal, "list reconcile rows failed")
-	}
-	if run == nil {
-		return nil, status.Error(codes.NotFound, "reconcile run not found")
-	}
-	if run.Status != data.ReconcileStatusSucceeded {
-		return nil, status.Error(codes.FailedPrecondition, "reconcile is not completed")
+		return nil, err
 	}
 
-	page := int(req.GetPage())
-	if page < 1 {
-		page = 1
-	}
-	pageSize := int(req.GetPageSize())
-	if pageSize < 1 {
-		pageSize = 100
-	}
-	if pageSize > 300 {
-		pageSize = 300
-	}
+	page, pageSize := normalizeReconcileListParams(req)
 
 	rows, total, err := s.repo.ListReconcileRows(ctx, run.RunID, page, pageSize)
 	if err != nil {
 		s.log.Errorf("list reconcile rows failed run_id=%s err=%v", run.RunID, err)
 		return nil, status.Error(codes.Internal, "list reconcile rows failed")
 	}
-	salesImport, importErr := s.repo.GetSectionImport(ctx, taskID, "sales")
-	if importErr != nil {
-		s.log.Errorf("query sales import failed task_id=%s err=%v", taskID, importErr)
-		return nil, status.Error(codes.Internal, "list reconcile rows failed")
+	if err = s.fillReconcileRowFilenames(ctx, taskID, rows, "list reconcile rows failed"); err != nil {
+		return nil, err
 	}
-	defaultFilename := ""
-	if salesImport != nil {
-		defaultFilename = strings.TrimSpace(salesImport.Filename)
+	if err = s.attachManualReviews(ctx, taskID, run.RunID, rows, "list reconcile rows failed"); err != nil {
+		return nil, err
 	}
-	if defaultFilename != "" {
-		for i := range rows {
-			if strings.TrimSpace(rows[i].Filename) == "" {
-				rows[i].Filename = defaultFilename
-			}
-		}
-	}
-	manualMap, err := s.repo.ListManualReviewsByRows(ctx, taskID, rows)
-	if err != nil {
-		s.log.Errorf("list manual reviews failed task_id=%s run_id=%s err=%v", taskID, run.RunID, err)
-		return nil, status.Error(codes.Internal, "list reconcile rows failed")
-	}
-	for i := range rows {
-		if it, ok := manualMap[buildManualReviewKey(rows[i].Filename, rows[i].RowNo)]; ok {
-			cp := it
-			rows[i].ManualReview = &cp
-		}
-	}
-
-	pbRows := make([]*squirrelv1.ReconcileRow, 0, len(rows))
-	for i := range rows {
-		pbRows = append(pbRows, toProtoReconcileRow(rows[i]))
-	}
-	columns := data.ParseHeader(run.ResultColumnsJSON)
-	return &squirrelv1.ListReconcileRowsReply{
-		Run:      toProtoReconcileRun(*run, false),
-		Columns:  columns,
-		Rows:     pbRows,
-		Page:     uint32(page),
-		PageSize: uint32(pageSize),
-		Total:    uint32(total),
-	}, nil
+	return buildListReconcileRowsReply(run, rows, total, page, pageSize), nil
 }
 
 func (s *SquirrelService) executeReconcileRun(
@@ -237,14 +185,149 @@ func (s *SquirrelService) executeReconcileRun(
 		s.log.Errorf("update reconcile progress failed run_id=%s err=%v", runID, err)
 		return
 	}
+	dataset, err := s.loadReconcileDataset(ctx, salesImport, wechatImports, alipayImports)
+	if err != nil {
+		fail(err)
+		return
+	}
+	if err = s.repo.UpdateReconcileRunProgress(ctx, runID, data.ReconcileStatusRunning, 28, "构建支付索引", "", 0, 0); err != nil {
+		s.log.Errorf("update reconcile progress failed run_id=%s err=%v", runID, err)
+	}
+	wechatMap, alipayMap, err := buildPaymentMatchMaps(*dataset)
+	if err != nil {
+		fail(err)
+		return
+	}
+	if err = s.repo.UpdateReconcileRunProgress(ctx, runID, data.ReconcileStatusRunning, 55, "并行匹配销售数据", "", 0, 0); err != nil {
+		s.log.Errorf("update reconcile progress failed run_id=%s err=%v", runID, err)
+	}
+	outRows, matchedRows, err := s.matchSalesRows(ctx, runID, dataset.salesRows, salesColumns, wechatMap, alipayMap)
+	if err != nil {
+		fail(err)
+		return
+	}
+	if err = s.finalizeReconcileRun(ctx, runID, taskID, salesImport.Filename, outRows, matchedRows, salesColumns); err != nil {
+		fail(err)
+	}
+}
 
+func (s *SquirrelService) loadCompletedReconcileRun(
+	ctx context.Context,
+	taskID, runID, action string,
+) (*data.SquirrelReconcileRun, error) {
 	var (
-		salesRows  []data.SquirrelSectionRowData
-		wechatRows []data.SquirrelSectionRowData
-		alipayRows []data.SquirrelSectionRowData
-		loadErr    error
-		mu         sync.Mutex
-		wg         sync.WaitGroup
+		run *data.SquirrelReconcileRun
+		err error
+	)
+	if runID != "" {
+		run, err = s.repo.GetReconcileRunByID(ctx, taskID, runID)
+	} else {
+		run, err = s.repo.GetLatestReconcileRunByTask(ctx, taskID)
+	}
+	if err != nil {
+		s.log.Errorf("query reconcile run failed task_id=%s run_id=%s err=%v", taskID, runID, err)
+		return nil, status.Error(codes.Internal, action)
+	}
+	if run == nil {
+		return nil, status.Error(codes.NotFound, "reconcile run not found")
+	}
+	if run.Status != data.ReconcileStatusSucceeded {
+		return nil, status.Error(codes.FailedPrecondition, "reconcile is not completed")
+	}
+	return run, nil
+}
+
+func normalizeReconcileListParams(req *squirrelv1.ListReconcileRowsRequest) (int, int) {
+	page := int(req.GetPage())
+	if page < 1 {
+		page = 1
+	}
+	pageSize := int(req.GetPageSize())
+	if pageSize < 1 {
+		pageSize = 100
+	}
+	if pageSize > 300 {
+		pageSize = 300
+	}
+	return page, pageSize
+}
+
+func (s *SquirrelService) fillReconcileRowFilenames(
+	ctx context.Context,
+	taskID string,
+	rows []data.ReconcileRowData,
+	action string,
+) error {
+	salesImport, err := s.repo.GetSectionImport(ctx, taskID, "sales")
+	if err != nil {
+		s.log.Errorf("query sales import failed task_id=%s err=%v", taskID, err)
+		return status.Error(codes.Internal, action)
+	}
+	defaultFilename := ""
+	if salesImport != nil {
+		defaultFilename = strings.TrimSpace(salesImport.Filename)
+	}
+	if defaultFilename == "" {
+		return nil
+	}
+	for i := range rows {
+		if strings.TrimSpace(rows[i].Filename) == "" {
+			rows[i].Filename = defaultFilename
+		}
+	}
+	return nil
+}
+
+func (s *SquirrelService) attachManualReviews(
+	ctx context.Context,
+	taskID, runID string,
+	rows []data.ReconcileRowData,
+	action string,
+) error {
+	manualMap, err := s.repo.ListManualReviewsByRows(ctx, taskID, rows)
+	if err != nil {
+		s.log.Errorf("list manual reviews failed task_id=%s run_id=%s err=%v", taskID, runID, err)
+		return status.Error(codes.Internal, action)
+	}
+	for i := range rows {
+		if it, ok := manualMap[buildManualReviewKey(rows[i].Filename, rows[i].RowNo)]; ok {
+			cp := it
+			rows[i].ManualReview = &cp
+		}
+	}
+	return nil
+}
+
+func buildListReconcileRowsReply(
+	run *data.SquirrelReconcileRun,
+	rows []data.ReconcileRowData,
+	total int64,
+	page, pageSize int,
+) *squirrelv1.ListReconcileRowsReply {
+	pbRows := make([]*squirrelv1.ReconcileRow, 0, len(rows))
+	for i := range rows {
+		pbRows = append(pbRows, toProtoReconcileRow(rows[i]))
+	}
+	return &squirrelv1.ListReconcileRowsReply{
+		Run:      toProtoReconcileRun(*run, false),
+		Columns:  data.ParseHeader(run.ResultColumnsJSON),
+		Rows:     pbRows,
+		Page:     uint32(page),
+		PageSize: uint32(pageSize),
+		Total:    uint32(total),
+	}
+}
+
+func (s *SquirrelService) loadReconcileDataset(
+	ctx context.Context,
+	salesImport data.SquirrelSectionImport,
+	wechatImports, alipayImports []data.SquirrelSectionImport,
+) (*reconcileDataset, error) {
+	var (
+		out     reconcileDataset
+		loadErr error
+		mu      sync.Mutex
+		wg      sync.WaitGroup
 	)
 	wg.Add(3)
 	go func() {
@@ -256,7 +339,7 @@ func (s *SquirrelService) executeReconcileRun(
 			loadErr = fmt.Errorf("load sales rows failed")
 			return
 		}
-		salesRows = rows
+		out.salesRows = rows
 	}()
 	go func() {
 		defer wg.Done()
@@ -267,7 +350,7 @@ func (s *SquirrelService) executeReconcileRun(
 			loadErr = fmt.Errorf("load wechat rows failed")
 			return
 		}
-		wechatRows = rows
+		out.wechatRows = rows
 	}()
 	go func() {
 		defer wg.Done()
@@ -278,168 +361,203 @@ func (s *SquirrelService) executeReconcileRun(
 			loadErr = fmt.Errorf("load alipay rows failed")
 			return
 		}
-		alipayRows = rows
+		out.alipayRows = rows
 	}()
 	wg.Wait()
 	if loadErr != nil {
-		fail(loadErr)
-		return
+		return nil, loadErr
 	}
+	out.wechatColumns = columnsFromImports(wechatImports)
+	out.alipayColumns = columnsFromImports(alipayImports)
+	return &out, nil
+}
 
-	wechatColumns := columnsFromImports(wechatImports)
-	alipayColumns := columnsFromImports(alipayImports)
-	wechatMap := make(map[string][]reconcileMatchItem, len(wechatRows))
-	alipayMap := make(map[string][]reconcileMatchItem, len(alipayRows))
-
-	if err := s.repo.UpdateReconcileRunProgress(ctx, runID, data.ReconcileStatusRunning, 28, "构建支付索引", "", 0, 0); err != nil {
-		s.log.Errorf("update reconcile progress failed run_id=%s err=%v", runID, err)
+func buildPaymentMatchMaps(
+	dataset reconcileDataset,
+) (map[string][]reconcileMatchItem, map[string][]reconcileMatchItem, error) {
+	wechatMap := make(map[string][]reconcileMatchItem, len(dataset.wechatRows))
+	alipayMap := make(map[string][]reconcileMatchItem, len(dataset.alipayRows))
+	if err := buildWechatMatchMap(dataset.wechatColumns, dataset.wechatRows, wechatMap); err != nil {
+		return nil, nil, err
 	}
+	if err := buildAlipayMatchMap(dataset.alipayColumns, dataset.alipayRows, alipayMap); err != nil {
+		return nil, nil, err
+	}
+	return wechatMap, alipayMap, nil
+}
 
-	var (
-		mapErr error
-		mapMu  sync.Mutex
-	)
-	wg = sync.WaitGroup{}
-	wg.Add(2)
-	go func() {
-		defer wg.Done()
-		idxOrderNo := findColumnIndexForReconcile(wechatColumns, []string{"淘宝订单编号"})
-		idxIncomeType := findColumnIndexForReconcile(wechatColumns, []string{"入账类型"})
-		if idxOrderNo < 0 || idxIncomeType < 0 {
-			mapMu.Lock()
-			if mapErr == nil {
-				mapErr = fmt.Errorf("missing wechat key columns")
-			}
-			mapMu.Unlock()
-			return
+func buildWechatMatchMap(
+	columns []string,
+	rows []data.SquirrelSectionRowData,
+	out map[string][]reconcileMatchItem,
+) error {
+	idxOrderNo := findColumnIndexForReconcile(columns, []string{"淘宝订单编号"})
+	idxIncomeType := findColumnIndexForReconcile(columns, []string{"入账类型"})
+	if idxOrderNo < 0 || idxIncomeType < 0 {
+		return fmt.Errorf("missing wechat key columns")
+	}
+	for i := range rows {
+		incomeType := strings.TrimSpace(valueAt(rows[i].Values, idxIncomeType))
+		if incomeType != "交易收款" && incomeType != "交易退款(售后)" {
+			continue
 		}
-		for i := range wechatRows {
-			incomeType := strings.TrimSpace(valueAt(wechatRows[i].Values, idxIncomeType))
-			if incomeType != "交易收款" && incomeType != "交易退款(售后)" {
-				continue
-			}
-			key := normalizeOrderNoForReconcile(valueAt(wechatRows[i].Values, idxOrderNo))
-			if key == "" {
-				continue
-			}
-			wechatMap[key] = append(wechatMap[key], reconcileMatchItem{
-				Source:   "wechat",
-				RowNo:    wechatRows[i].RowNo,
-				Filename: wechatRows[i].Filename,
-				Detail:   toReconcileDetail(wechatColumns, wechatRows[i].Values),
+		key := normalizeOrderNoForReconcile(valueAt(rows[i].Values, idxOrderNo))
+		if key == "" {
+			continue
+		}
+		out[key] = append(out[key], reconcileMatchItem{
+			Source:   "wechat",
+			RowNo:    rows[i].RowNo,
+			Filename: rows[i].Filename,
+			Detail:   toReconcileDetail(columns, rows[i].Values),
+		})
+	}
+	return nil
+}
+
+func buildAlipayMatchMap(
+	columns []string,
+	rows []data.SquirrelSectionRowData,
+	out map[string][]reconcileMatchItem,
+) error {
+	idxOrderNo := findColumnIndexForReconcile(columns, []string{"业务基础订单号"})
+	idxBizDesc := findColumnIndexForReconcile(columns, []string{"业务描述"})
+	idxRemark := findColumnIndexForReconcile(columns, []string{"备注"})
+	if idxOrderNo < 0 || idxBizDesc < 0 || idxRemark < 0 {
+		return fmt.Errorf("missing alipay key columns")
+	}
+	for i := range rows {
+		for key := range extractAlipayMatchKeys(rows[i].Values, idxOrderNo, idxBizDesc, idxRemark) {
+			out[key] = append(out[key], reconcileMatchItem{
+				Source:   "alipay",
+				RowNo:    rows[i].RowNo,
+				Filename: rows[i].Filename,
+				Detail:   toReconcileDetail(columns, rows[i].Values),
 			})
 		}
-	}()
-	go func() {
-		defer wg.Done()
-		idxOrderNo := findColumnIndexForReconcile(alipayColumns, []string{"业务基础订单号"})
-		idxBizDesc := findColumnIndexForReconcile(alipayColumns, []string{"业务描述"})
-		idxRemark := findColumnIndexForReconcile(alipayColumns, []string{"备注"})
-		if idxOrderNo < 0 || idxBizDesc < 0 || idxRemark < 0 {
-			mapMu.Lock()
-			if mapErr == nil {
-				mapErr = fmt.Errorf("missing alipay key columns")
-			}
-			mapMu.Unlock()
-			return
-		}
-		for i := range alipayRows {
-			bizDesc := strings.TrimSpace(valueAt(alipayRows[i].Values, idxBizDesc))
-			remark := strings.TrimSpace(valueAt(alipayRows[i].Values, idxRemark))
-			baseOrderNo := normalizeOrderNoForReconcile(valueAt(alipayRows[i].Values, idxOrderNo))
-			_, descHit := alipayAllowedBizDesc[bizDesc]
-			keywordHit := strings.Contains(remark, "扣款用途：基金代发任务")
-			if !descHit && !keywordHit {
-				continue
-			}
+	}
+	return nil
+}
 
-			keys := map[string]struct{}{}
-			if descHit && baseOrderNo != "" {
-				keys[baseOrderNo] = struct{}{}
-			}
-			if keywordHit {
-				matches := orderNoRegex.FindAllStringSubmatch(remark, -1)
-				for _, m := range matches {
-					if len(m) > 1 {
-						no := normalizeOrderNoForReconcile(m[1])
-						if no != "" {
-							keys[no] = struct{}{}
-						}
-					}
+func extractAlipayMatchKeys(values []string, idxOrderNo, idxBizDesc, idxRemark int) map[string]struct{} {
+	bizDesc := strings.TrimSpace(valueAt(values, idxBizDesc))
+	remark := strings.TrimSpace(valueAt(values, idxRemark))
+	baseOrderNo := normalizeOrderNoForReconcile(valueAt(values, idxOrderNo))
+	_, descHit := alipayAllowedBizDesc[bizDesc]
+	keywordHit := strings.Contains(remark, "扣款用途：基金代发任务")
+	if !descHit && !keywordHit {
+		return nil
+	}
+	keys := map[string]struct{}{}
+	if descHit && baseOrderNo != "" {
+		keys[baseOrderNo] = struct{}{}
+	}
+	if keywordHit {
+		matches := orderNoRegex.FindAllStringSubmatch(remark, -1)
+		for _, m := range matches {
+			if len(m) > 1 {
+				no := normalizeOrderNoForReconcile(m[1])
+				if no != "" {
+					keys[no] = struct{}{}
 				}
 			}
-			for k := range keys {
-				alipayMap[k] = append(alipayMap[k], reconcileMatchItem{
-					Source:   "alipay",
-					RowNo:    alipayRows[i].RowNo,
-					Filename: alipayRows[i].Filename,
-					Detail:   toReconcileDetail(alipayColumns, alipayRows[i].Values),
-				})
-			}
 		}
-	}()
-	wg.Wait()
-	if mapErr != nil {
-		fail(mapErr)
-		return
 	}
+	return keys
+}
 
-	if err := s.repo.UpdateReconcileRunProgress(ctx, runID, data.ReconcileStatusRunning, 55, "并行匹配销售数据", "", 0, 0); err != nil {
-		s.log.Errorf("update reconcile progress failed run_id=%s err=%v", runID, err)
-	}
-
+func (s *SquirrelService) matchSalesRows(
+	ctx context.Context,
+	runID string,
+	salesRows []data.SquirrelSectionRowData,
+	salesColumns []string,
+	wechatMap, alipayMap map[string][]reconcileMatchItem,
+) ([]data.ReconcileRowData, int32, error) {
 	salesOrderIdx := findColumnIndexForReconcile(salesColumns, []string{"子单原始单号"})
 	if salesOrderIdx < 0 {
-		fail(fmt.Errorf("missing sales key column"))
-		return
+		return nil, 0, fmt.Errorf("missing sales key column")
 	}
-
-	workerCount := runtime.NumCPU()
-	if workerCount < 2 {
-		workerCount = 2
-	}
-	if workerCount > 8 {
-		workerCount = 8
-	}
+	workerCount := normalizeReconcileWorkerCount(runtime.NumCPU())
 	jobs := make(chan indexedReconcileRow, workerCount*2)
 	results := make(chan indexedReconcileRow, workerCount*2)
 
 	for i := 0; i < workerCount; i++ {
-		go func() {
-			for job := range jobs {
-				orderNo := normalizeOrderNoForReconcile(valueAt(job.Row.Values, salesOrderIdx))
-				matches := make([]data.ReconcileMatch, 0, 2)
-				if items, ok := wechatMap[orderNo]; ok {
-					for _, it := range items {
-						matches = append(matches, data.ReconcileMatch{
-							Source:   it.Source,
-							RowNo:    it.RowNo,
-							Filename: it.Filename,
-							Detail:   it.Detail,
-						})
-					}
-				}
-				if items, ok := alipayMap[orderNo]; ok {
-					for _, it := range items {
-						matches = append(matches, data.ReconcileMatch{
-							Source:   it.Source,
-							RowNo:    it.RowNo,
-							Filename: it.Filename,
-							Detail:   it.Detail,
-						})
-					}
-				}
-				row := data.ReconcileRowData{
-					Filename: job.Row.Filename,
-					RowNo:    job.Row.RowNo,
-					Values:   padValues(job.Row.Values, len(salesColumns)),
-					Matches:  matches,
-				}
-				results <- indexedReconcileRow{Idx: job.Idx, Row: row}
-			}
-		}()
+		go runReconcileMatchWorker(jobs, results, salesOrderIdx, len(salesColumns), wechatMap, alipayMap)
 	}
+	enqueueReconcileJobs(jobs, salesRows)
 
+	outRows := make([]data.ReconcileRowData, len(salesRows))
+	var matchedRows int32
+	for i := 0; i < len(salesRows); i++ {
+		item := <-results
+		outRows[item.Idx] = item.Row
+		if len(item.Row.Matches) > 0 {
+			matchedRows++
+		}
+		s.updateReconcileMatchProgress(ctx, runID, i+1, len(salesRows), matchedRows)
+	}
+	close(results)
+	sort.Slice(outRows, func(i, j int) bool { return outRows[i].RowNo < outRows[j].RowNo })
+	return outRows, matchedRows, nil
+}
+
+func normalizeReconcileWorkerCount(workerCount int) int {
+	if workerCount < 2 {
+		return 2
+	}
+	if workerCount > 8 {
+		return 8
+	}
+	return workerCount
+}
+
+func runReconcileMatchWorker(
+	jobs <-chan indexedReconcileRow,
+	results chan<- indexedReconcileRow,
+	salesOrderIdx, salesColumnCount int,
+	wechatMap, alipayMap map[string][]reconcileMatchItem,
+) {
+	for job := range jobs {
+		results <- indexedReconcileRow{
+			Idx: job.Idx,
+			Row: buildMatchedReconcileRow(job.Row, salesOrderIdx, salesColumnCount, wechatMap, alipayMap),
+		}
+	}
+}
+
+func buildMatchedReconcileRow(
+	row data.ReconcileRowData,
+	salesOrderIdx, salesColumnCount int,
+	wechatMap, alipayMap map[string][]reconcileMatchItem,
+) data.ReconcileRowData {
+	orderNo := normalizeOrderNoForReconcile(valueAt(row.Values, salesOrderIdx))
+	return data.ReconcileRowData{
+		Filename: row.Filename,
+		RowNo:    row.RowNo,
+		Values:   padValues(row.Values, salesColumnCount),
+		Matches:  appendMatchedReconcileItems(nil, wechatMap[orderNo], alipayMap[orderNo]),
+	}
+}
+
+func appendMatchedReconcileItems(
+	base []data.ReconcileMatch,
+	groups ...[]reconcileMatchItem,
+) []data.ReconcileMatch {
+	matches := base
+	for _, group := range groups {
+		for _, it := range group {
+			matches = append(matches, data.ReconcileMatch{
+				Source:   it.Source,
+				RowNo:    it.RowNo,
+				Filename: it.Filename,
+				Detail:   it.Detail,
+			})
+		}
+	}
+	return matches
+}
+
+func enqueueReconcileJobs(jobs chan<- indexedReconcileRow, salesRows []data.SquirrelSectionRowData) {
 	go func() {
 		for i := range salesRows {
 			jobs <- indexedReconcileRow{
@@ -453,41 +571,46 @@ func (s *SquirrelService) executeReconcileRun(
 		}
 		close(jobs)
 	}()
+}
 
-	outRows := make([]data.ReconcileRowData, len(salesRows))
-	var matchedRows int32
-	for i := 0; i < len(salesRows); i++ {
-		item := <-results
-		outRows[item.Idx] = item.Row
-		if len(item.Row.Matches) > 0 {
-			matchedRows++
-		}
-		processed := int32(i + 1)
-		if processed%300 == 0 || processed == int32(len(salesRows)) {
-			progress := int32(55 + (processed * 40 / maxInt32(int32(len(salesRows)), 1)))
-			if err := s.repo.UpdateReconcileRunProgress(ctx, runID, data.ReconcileStatusRunning, progress, "并行匹配销售数据", "", processed, matchedRows); err != nil {
-				s.log.Warnf("update reconcile progress failed run_id=%s err=%v", runID, err)
-			}
-		}
+func (s *SquirrelService) updateReconcileMatchProgress(
+	ctx context.Context,
+	runID string,
+	processed, total int,
+	matchedRows int32,
+) {
+	processedRows := int32(processed)
+	totalRows := int32(total)
+	if processedRows%300 != 0 && processedRows != totalRows {
+		return
 	}
-	close(results)
+	progress := int32(55 + (processedRows * 40 / maxInt32(totalRows, 1)))
+	if err := s.repo.UpdateReconcileRunProgress(ctx, runID, data.ReconcileStatusRunning, progress, "并行匹配销售数据", "", processedRows, matchedRows); err != nil {
+		s.log.Warnf("update reconcile progress failed run_id=%s err=%v", runID, err)
+	}
+}
 
-	sort.Slice(outRows, func(i, j int) bool { return outRows[i].RowNo < outRows[j].RowNo })
-
+func (s *SquirrelService) finalizeReconcileRun(
+	ctx context.Context,
+	runID, taskID, salesFilename string,
+	outRows []data.ReconcileRowData,
+	matchedRows int32,
+	salesColumns []string,
+) error {
 	if err := s.repo.UpdateReconcileRunProgress(ctx, runID, data.ReconcileStatusRunning, 97, "写入核算结果", "", int32(len(outRows)), matchedRows); err != nil {
 		s.log.Warnf("update reconcile progress failed run_id=%s err=%v", runID, err)
 	}
 	if err := s.repo.ReplaceReconcileRowsAndMarkSuccess(ctx, runID, outRows, matchedRows, int32(len(outRows)), salesColumns); err != nil {
-		fail(fmt.Errorf("save reconcile result failed"))
-		return
+		return fmt.Errorf("save reconcile result failed")
 	}
-	autoReviews := buildAutoManualReviews(taskID, salesImport.Filename, outRows, salesColumns)
-	if len(autoReviews) > 0 {
-		if err := s.repo.BatchUpsertManualReviews(ctx, autoReviews); err != nil {
-			fail(fmt.Errorf("save auto manual reviews failed"))
-			return
-		}
+	autoReviews := buildAutoManualReviews(taskID, salesFilename, outRows, salesColumns)
+	if len(autoReviews) == 0 {
+		return nil
 	}
+	if err := s.repo.BatchUpsertManualReviews(ctx, autoReviews); err != nil {
+		return fmt.Errorf("save auto manual reviews failed")
+	}
+	return nil
 }
 
 func (s *SquirrelService) loadRequiredSectionImports(
