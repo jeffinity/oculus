@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/go-kratos/kratos/v2/log"
 )
@@ -69,6 +70,33 @@ func (r *AssetRepo) List(ctx context.Context, startYM, endYM string) ([]Asset, e
 	return items, nil
 }
 
+func (r *AssetRepo) FindByYM(ctx context.Context, ym string) (*Asset, error) {
+	var item Asset
+	err := r.data.db.QueryRowContext(
+		ctx,
+		`SELECT ym, asset, net_asset, liability, remark
+		 FROM assets
+		 WHERE ym = $1`,
+		ym,
+	).Scan(&item.YM, &item.Asset, &item.NetAsset, &item.Liability, &item.Remark)
+	if err != nil {
+		return nil, err
+	}
+	return &item, nil
+}
+
+func (r *AssetRepo) Upsert(ctx context.Context, item *Asset) error {
+	_, err := r.data.db.ExecContext(
+		ctx,
+		`INSERT INTO assets (ym, asset, net_asset, liability, remark)
+		 VALUES ($1, $2, $3, $4, $5)
+		 ON CONFLICT (ym)
+		 DO UPDATE SET asset = EXCLUDED.asset, net_asset = EXCLUDED.net_asset, liability = EXCLUDED.liability, remark = EXCLUDED.remark`,
+		item.YM, item.Asset, item.NetAsset, item.Liability, item.Remark,
+	)
+	return err
+}
+
 func (r *AssetRepo) ensureSchema(ctx context.Context) {
 	stmts := []string{
 		`CREATE TABLE IF NOT EXISTS assets (
@@ -85,4 +113,8 @@ func (r *AssetRepo) ensureSchema(ctx context.Context) {
 			r.log.Warnf("ensure assets schema failed: %v", err)
 		}
 	}
+}
+
+func IsNotFound(err error) bool {
+	return err == sql.ErrNoRows
 }

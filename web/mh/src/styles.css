@@ -17,6 +17,7 @@
 }
 
 html {
+  font-size: 14px;
   background: var(--bg);
 }
 
@@ -102,7 +103,7 @@ img {
   padding: 2px 0 8px;
   color: rgba(23, 23, 23, 0.56);
   background: transparent;
-  font-size: 1.9rem;
+  font-size: 1.6rem;
   font-weight: 500;
   letter-spacing: -0.04em;
 }
@@ -217,6 +218,11 @@ img {
   cursor: pointer;
 }
 
+.latest-card:focus-visible {
+  outline: 2px solid rgba(52, 164, 244, 0.48);
+  outline-offset: 2px;
+}
+
 .latest-cover-wrap {
   position: relative;
 }
@@ -300,14 +306,28 @@ img {
 }
 
 .cta-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   align-self: flex-start;
   margin-top: auto;
-  padding: 10px 24px;
-  border-radius: 999px;
+  padding: 9px 14px;
+  border-radius: 6px;
   background: linear-gradient(135deg, var(--primary), var(--primary-deep));
   color: #fff;
   font-weight: 700;
   box-shadow: 0 12px 28px rgba(52, 164, 244, 0.28);
+}
+
+.cta-button .cta-icon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  stroke: rgb(255, 255, 255);
+}
+
+.cta-button span {
+  line-height: 1;
 }
 
 .pager {
@@ -402,11 +422,29 @@ img {
   backdrop-filter: blur(8px);
 }
 
+.hero-home-button {
+  position: absolute;
+  top: 18px;
+  right: 16px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(8px);
+}
+
+.hero-home-button .home-icon {
+  transform: translateY(2px);
+}
+
 .hero-back-icon {
-  width: 14px;
-  height: 14px;
-  border-top: 4px solid #fff;
-  border-left: 4px solid #fff;
+  width: 12px;
+  height: 12px;
+  border-top: 3px solid #fff;
+  border-left: 3px solid #fff;
   transform: rotate(-45deg) translate(1px, 1px);
 }
 
@@ -595,10 +633,10 @@ img {
 }
 
 .reader-icon-button .hero-back-icon {
-  width: 12px;
-  height: 12px;
-  border-top-width: 3px;
-  border-left-width: 3px;
+  width: 10px;
+  height: 10px;
+  border-top-width: 2px;
+  border-left-width: 2px;
 }
 
 .home-icon {
@@ -606,20 +644,21 @@ img {
   flex: 0 0 auto;
   box-sizing: border-box;
   position: relative;
-  width: 16px;
-  height: 12px;
+  width: 14px;
+  height: 10px;
   border: 2px solid #fff;
   border-top: 0;
   border-radius: 2px 2px 3px 3px;
+  transform: translateY(2px);
 }
 
 .home-icon::before {
   content: "";
   position: absolute;
   left: 50%;
-  top: -5px;
-  width: 10px;
-  height: 10px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
   border-top: 2px solid #fff;
   border-left: 2px solid #fff;
   transform: translateX(-50%) rotate(45deg);
@@ -647,6 +686,10 @@ img {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
   font-weight: 700;
+}
+
+.reader-page-indicator:hover {
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .reader-state {
@@ -712,7 +755,7 @@ img {
   }
 
   .mode-tabs button {
-    font-size: 1.7rem;
+    font-size: 1.4rem;
   }
 
   .book-grid {
@@ -738,7 +781,7 @@ img {
   }
 
   .cta-button {
-    padding: 9px 20px;
+    padding: 8px 12px;
   }
 
   .chapter-list {

@@ -20,6 +20,11 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	BookkeepingService_AssetList_FullMethodName          = "/api.bookkeeping.v1.BookkeepingService/AssetList"
+	BookkeepingService_AssetDetailList_FullMethodName    = "/api.bookkeeping.v1.BookkeepingService/AssetDetailList"
+	BookkeepingService_CreateAssetDetail_FullMethodName  = "/api.bookkeeping.v1.BookkeepingService/CreateAssetDetail"
+	BookkeepingService_UpdateAssetDetail_FullMethodName  = "/api.bookkeeping.v1.BookkeepingService/UpdateAssetDetail"
+	BookkeepingService_DeleteAssetDetail_FullMethodName  = "/api.bookkeeping.v1.BookkeepingService/DeleteAssetDetail"
+	BookkeepingService_UpdateAssetRemark_FullMethodName  = "/api.bookkeeping.v1.BookkeepingService/UpdateAssetRemark"
 	BookkeepingService_UpsertLedgerEntry_FullMethodName  = "/api.bookkeeping.v1.BookkeepingService/UpsertLedgerEntry"
 	BookkeepingService_LedgerList_FullMethodName         = "/api.bookkeeping.v1.BookkeepingService/LedgerList"
 	BookkeepingService_LedgerStats_FullMethodName        = "/api.bookkeeping.v1.BookkeepingService/LedgerStats"
@@ -37,6 +42,16 @@ const (
 type BookkeepingServiceClient interface {
 	// 查询资产列表（按月份聚合，返回资产、负债、净资产及贷款明细）
 	AssetList(ctx context.Context, in *AssetListRequest, opts ...grpc.CallOption) (*AssetListReply, error)
+	// 查询某月资产明细（若当月为空且上月存在，会自动复制一份上月数据到当月）
+	AssetDetailList(ctx context.Context, in *AssetDetailListRequest, opts ...grpc.CallOption) (*AssetDetailListReply, error)
+	// 新增资产明细
+	CreateAssetDetail(ctx context.Context, in *CreateAssetDetailRequest, opts ...grpc.CallOption) (*CreateAssetDetailReply, error)
+	// 更新资产明细
+	UpdateAssetDetail(ctx context.Context, in *UpdateAssetDetailRequest, opts ...grpc.CallOption) (*UpdateAssetDetailReply, error)
+	// 删除资产明细
+	DeleteAssetDetail(ctx context.Context, in *DeleteAssetDetailRequest, opts ...grpc.CallOption) (*DeleteAssetDetailReply, error)
+	// 更新某月资产备注
+	UpdateAssetRemark(ctx context.Context, in *UpdateAssetRemarkRequest, opts ...grpc.CallOption) (*UpdateAssetRemarkReply, error)
 	// 新增或更新账本记录（按日期+类别+金额唯一更新）
 	UpsertLedgerEntry(ctx context.Context, in *UpsertLedgerEntryRequest, opts ...grpc.CallOption) (*UpsertLedgerEntryReply, error)
 	// 查询某月账本清单
@@ -69,6 +84,56 @@ func (c *bookkeepingServiceClient) AssetList(ctx context.Context, in *AssetListR
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AssetListReply)
 	err := c.cc.Invoke(ctx, BookkeepingService_AssetList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *bookkeepingServiceClient) AssetDetailList(ctx context.Context, in *AssetDetailListRequest, opts ...grpc.CallOption) (*AssetDetailListReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AssetDetailListReply)
+	err := c.cc.Invoke(ctx, BookkeepingService_AssetDetailList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *bookkeepingServiceClient) CreateAssetDetail(ctx context.Context, in *CreateAssetDetailRequest, opts ...grpc.CallOption) (*CreateAssetDetailReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateAssetDetailReply)
+	err := c.cc.Invoke(ctx, BookkeepingService_CreateAssetDetail_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *bookkeepingServiceClient) UpdateAssetDetail(ctx context.Context, in *UpdateAssetDetailRequest, opts ...grpc.CallOption) (*UpdateAssetDetailReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateAssetDetailReply)
+	err := c.cc.Invoke(ctx, BookkeepingService_UpdateAssetDetail_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *bookkeepingServiceClient) DeleteAssetDetail(ctx context.Context, in *DeleteAssetDetailRequest, opts ...grpc.CallOption) (*DeleteAssetDetailReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteAssetDetailReply)
+	err := c.cc.Invoke(ctx, BookkeepingService_DeleteAssetDetail_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *bookkeepingServiceClient) UpdateAssetRemark(ctx context.Context, in *UpdateAssetRemarkRequest, opts ...grpc.CallOption) (*UpdateAssetRemarkReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateAssetRemarkReply)
+	err := c.cc.Invoke(ctx, BookkeepingService_UpdateAssetRemark_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -171,6 +236,16 @@ func (c *bookkeepingServiceClient) LoanDetail(ctx context.Context, in *LoanDetai
 type BookkeepingServiceServer interface {
 	// 查询资产列表（按月份聚合，返回资产、负债、净资产及贷款明细）
 	AssetList(context.Context, *AssetListRequest) (*AssetListReply, error)
+	// 查询某月资产明细（若当月为空且上月存在，会自动复制一份上月数据到当月）
+	AssetDetailList(context.Context, *AssetDetailListRequest) (*AssetDetailListReply, error)
+	// 新增资产明细
+	CreateAssetDetail(context.Context, *CreateAssetDetailRequest) (*CreateAssetDetailReply, error)
+	// 更新资产明细
+	UpdateAssetDetail(context.Context, *UpdateAssetDetailRequest) (*UpdateAssetDetailReply, error)
+	// 删除资产明细
+	DeleteAssetDetail(context.Context, *DeleteAssetDetailRequest) (*DeleteAssetDetailReply, error)
+	// 更新某月资产备注
+	UpdateAssetRemark(context.Context, *UpdateAssetRemarkRequest) (*UpdateAssetRemarkReply, error)
 	// 新增或更新账本记录（按日期+类别+金额唯一更新）
 	UpsertLedgerEntry(context.Context, *UpsertLedgerEntryRequest) (*UpsertLedgerEntryReply, error)
 	// 查询某月账本清单
@@ -201,6 +276,21 @@ type UnimplementedBookkeepingServiceServer struct{}
 
 func (UnimplementedBookkeepingServiceServer) AssetList(context.Context, *AssetListRequest) (*AssetListReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method AssetList not implemented")
+}
+func (UnimplementedBookkeepingServiceServer) AssetDetailList(context.Context, *AssetDetailListRequest) (*AssetDetailListReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method AssetDetailList not implemented")
+}
+func (UnimplementedBookkeepingServiceServer) CreateAssetDetail(context.Context, *CreateAssetDetailRequest) (*CreateAssetDetailReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateAssetDetail not implemented")
+}
+func (UnimplementedBookkeepingServiceServer) UpdateAssetDetail(context.Context, *UpdateAssetDetailRequest) (*UpdateAssetDetailReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateAssetDetail not implemented")
+}
+func (UnimplementedBookkeepingServiceServer) DeleteAssetDetail(context.Context, *DeleteAssetDetailRequest) (*DeleteAssetDetailReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteAssetDetail not implemented")
+}
+func (UnimplementedBookkeepingServiceServer) UpdateAssetRemark(context.Context, *UpdateAssetRemarkRequest) (*UpdateAssetRemarkReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateAssetRemark not implemented")
 }
 func (UnimplementedBookkeepingServiceServer) UpsertLedgerEntry(context.Context, *UpsertLedgerEntryRequest) (*UpsertLedgerEntryReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpsertLedgerEntry not implemented")
@@ -264,6 +354,96 @@ func _BookkeepingService_AssetList_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(BookkeepingServiceServer).AssetList(ctx, req.(*AssetListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BookkeepingService_AssetDetailList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AssetDetailListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BookkeepingServiceServer).AssetDetailList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BookkeepingService_AssetDetailList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BookkeepingServiceServer).AssetDetailList(ctx, req.(*AssetDetailListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BookkeepingService_CreateAssetDetail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateAssetDetailRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BookkeepingServiceServer).CreateAssetDetail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BookkeepingService_CreateAssetDetail_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BookkeepingServiceServer).CreateAssetDetail(ctx, req.(*CreateAssetDetailRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BookkeepingService_UpdateAssetDetail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateAssetDetailRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BookkeepingServiceServer).UpdateAssetDetail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BookkeepingService_UpdateAssetDetail_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BookkeepingServiceServer).UpdateAssetDetail(ctx, req.(*UpdateAssetDetailRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BookkeepingService_DeleteAssetDetail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteAssetDetailRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BookkeepingServiceServer).DeleteAssetDetail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BookkeepingService_DeleteAssetDetail_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BookkeepingServiceServer).DeleteAssetDetail(ctx, req.(*DeleteAssetDetailRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BookkeepingService_UpdateAssetRemark_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateAssetRemarkRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BookkeepingServiceServer).UpdateAssetRemark(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BookkeepingService_UpdateAssetRemark_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BookkeepingServiceServer).UpdateAssetRemark(ctx, req.(*UpdateAssetRemarkRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -440,6 +620,26 @@ var BookkeepingService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AssetList",
 			Handler:    _BookkeepingService_AssetList_Handler,
+		},
+		{
+			MethodName: "AssetDetailList",
+			Handler:    _BookkeepingService_AssetDetailList_Handler,
+		},
+		{
+			MethodName: "CreateAssetDetail",
+			Handler:    _BookkeepingService_CreateAssetDetail_Handler,
+		},
+		{
+			MethodName: "UpdateAssetDetail",
+			Handler:    _BookkeepingService_UpdateAssetDetail_Handler,
+		},
+		{
+			MethodName: "DeleteAssetDetail",
+			Handler:    _BookkeepingService_DeleteAssetDetail_Handler,
+		},
+		{
+			MethodName: "UpdateAssetRemark",
+			Handler:    _BookkeepingService_UpdateAssetRemark_Handler,
 		},
 		{
 			MethodName: "UpsertLedgerEntry",

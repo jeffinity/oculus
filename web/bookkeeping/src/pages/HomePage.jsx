@@ -1,6 +1,9 @@
 /* eslint-disable max-lines-per-function */
-import { Card, Empty, Progress, Select, Skeleton, Spin, Switch, Typography } from "antd";
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { Button, Card, Empty, Progress, Select, Skeleton, Spin, Switch, Typography } from "antd";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+
+import LoadOnVisible from "../components/LoadOnVisible";
+import MobileHeader from "../components/MobileHeader";
 
 const TrendChartCard = lazy(() => import("../components/TrendChartCard"));
 
@@ -107,16 +110,25 @@ async function requestLoanSummaryList() {
   return json.items || [];
 }
 
+async function requestAssetDetailExists(ym) {
+  const query = new URLSearchParams({ ym });
+  const res = await fetch(`/api/v1/bookkeeping/asset-details?${query.toString()}`);
+  if (!res.ok) throw new Error(`request failed: ${res.status}`);
+  const json = await res.json();
+  return Array.isArray(json.items) && json.items.length > 0;
+}
+
 function buildNetAssetChanges(items, includeLoan) {
   const result = [];
   for (let i = 1; i < items.length; i++) {
     const prev = items[i - 1];
     const curr = items[i];
     const scheduledPrincipal = (curr.loans || []).reduce((sum, loan) => sum + parseNumber(loan.monthlyPrincipal), 0);
-    const prepaymentPrincipal = (curr.loans || []).reduce((sum, loan) => sum + parseNumber(loan.prepaymentPrincipal), 0);
     let diff = curr.netAsset - prev.netAsset;
     if (includeLoan) {
-      diff = diff - scheduledPrincipal + prepaymentPrincipal;
+      // Loan-inclusive net asset delta already reflects prepayment principal via remaining principal change.
+      // Only neutralize scheduled principal to align with the non-loan trend baseline.
+      diff = diff - scheduledPrincipal;
     }
     result.push({
       ym: curr.ym.replace(".", "-"),
@@ -156,6 +168,13 @@ function openLedgerMonth(ym) {
   const search = new URLSearchParams(window.location.search);
   search.set("view", "ledger-month");
   search.set("ledger_ym", ym.replace("-", "."));
+  window.location.search = search.toString();
+}
+
+function openAssetManageByYM(ym) {
+  const search = new URLSearchParams(window.location.search);
+  search.set("view", "asset-manage");
+  search.set("ym", ym.replace("-", "."));
   window.location.search = search.toString();
 }
 
@@ -232,6 +251,24 @@ function renderLoanSummarySection(loanLoading, loanSummaries) {
   );
 }
 
+function renderTrendFallback(key) {
+  return (
+    <Card key={key} className="trend-card" styles={{ body: { padding: 18 } }}>
+      <Skeleton active paragraph={{ rows: 6 }} />
+    </Card>
+  );
+}
+
+function shallowEqualBooleanMap(a, b) {
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) return false;
+  for (const key of aKeys) {
+    if (a[key] !== b[key]) return false;
+  }
+  return true;
+}
+
 export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [includeLoan, setIncludeLoan] = useState(getInitialIncludeLoan);
@@ -239,8 +276,17 @@ export default function HomePage() {
   const [assets, setAssets] = useState([]);
   const [loanLoading, setLoanLoading] = useState(false);
   const [loanSummaries, setLoanSummaries] = useState([]);
+  const [assetDetailVisibleByYM, setAssetDetailVisibleByYM] = useState({});
+  const assetDetailVisibleCacheRef = useRef({});
   const filteredAssets = useMemo(() => filterByRange(assets, range), [assets, range]);
-  const netAssetChanges = buildNetAssetChanges(filteredAssets, includeLoan);
+  const netAssetChanges = useMemo(
+    () => buildNetAssetChanges(filteredAssets, includeLoan),
+    [filteredAssets, includeLoan]
+  );
+  const detailYMList = useMemo(
+    () => [...new Set(netAssetChanges.map((it) => it.ym.replace("-", ".")))],
+    [netAssetChanges]
+  );
 
   useEffect(() => {
     let active = true;
@@ -262,6 +308,57 @@ export default function HomePage() {
       active = false;
     };
   }, [includeLoan]);
+
+  useEffect(() => {
+    let active = true;
+    if (detailYMList.length === 0) {
+      assetDetailVisibleCacheRef.current = {};
+      setAssetDetailVisibleByYM((prev) => (Object.keys(prev).length === 0 ? prev : {}));
+      return () => {
+        active = false;
+      };
+    }
+
+    const cache = assetDetailVisibleCacheRef.current;
+    const missingYMs = detailYMList.filter((ym) => cache[ym.replace(".", "-")] === undefined);
+
+    const syncFromCache = () => {
+      const nextVisible = {};
+      for (const ym of detailYMList) {
+        const key = ym.replace(".", "-");
+        nextVisible[key] = Boolean(cache[key]);
+      }
+      setAssetDetailVisibleByYM((prev) => (shallowEqualBooleanMap(prev, nextVisible) ? prev : nextVisible));
+    };
+
+    if (missingYMs.length === 0) {
+      syncFromCache();
+      return () => {
+        active = false;
+      };
+    }
+
+    (async () => {
+      const entries = await Promise.all(
+        missingYMs.map(async (ym) => {
+          try {
+            const hasDetails = await requestAssetDetailExists(ym);
+            return [ym.replace(".", "-"), hasDetails];
+          } catch {
+            return [ym.replace(".", "-"), false];
+          }
+        })
+      );
+      if (!active) return;
+      for (const [key, visible] of entries) {
+        cache[key] = visible;
+      }
+      syncFromCache();
+    })();
+    return () => {
+      active = false;
+    };
+  }, [detailYMList]);
 
   useEffect(() => {
     const search = new URLSearchParams(window.location.search);
@@ -301,10 +398,13 @@ export default function HomePage() {
   const pageState = renderPageState(loading, filteredAssets);
 
   return (
-    <div className="page-wrap">
+    <div className="mobile-page-wrap">
+      <MobileHeader title="资产总览" />
+      <div className="mobile-page-content">
+        <div className="page-wrap">
       <Card className="main-card" styles={{ body: { padding: 24 } }}>
-        <div className="top-row">
-          <Typography.Title level={2} className="page-title">
+        <div className="top-row top-row-tight">
+          <Typography.Title level={4} className="section-title">
             资产走势图
           </Typography.Title>
           <Select
@@ -324,21 +424,16 @@ export default function HomePage() {
           <>
             <div className="chart-grid">
               {METRICS.map((metric) => (
-                <Suspense
-                  key={metric.key}
-                  fallback={
-                    <Card className="trend-card" styles={{ body: { padding: 18 } }}>
-                      <Skeleton active paragraph={{ rows: 6 }} />
-                    </Card>
-                  }
-                >
-                  <TrendChartCard
-                    title={metric.title}
-                    color={metric.color}
-                    items={filteredAssets}
-                    metricKey={metric.key}
-                  />
-                </Suspense>
+                <LoadOnVisible key={metric.key} placeholder={renderTrendFallback(metric.key)}>
+                  <Suspense fallback={renderTrendFallback(`suspense-${metric.key}`)}>
+                    <TrendChartCard
+                      title={metric.title}
+                      color={metric.color}
+                      items={filteredAssets}
+                      metricKey={metric.key}
+                    />
+                  </Suspense>
+                </LoadOnVisible>
               ))}
             </div>
             {includeLoan ? (
@@ -350,28 +445,44 @@ export default function HomePage() {
               </div>
             ) : null}
             <div className="change-list-card">
-              <Typography.Title level={4} className="change-list-title">
-                资产变动清单
-              </Typography.Title>
+              <div className="change-list-head">
+                <Typography.Title level={4} className="change-list-title">
+                  资产变动清单
+                </Typography.Title>
+              </div>
               {netAssetChanges.length === 0 ? (
                 <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无变动数据" />
               ) : (
                 <div className="change-list">
                   {netAssetChanges.map((item) => (
-                    <button
-                      type="button"
-                      key={item.ym}
-                      className="change-item change-item-btn"
-                      onClick={() => openLedgerMonth(item.ym)}
-                    >
-                      <span className="change-ym">{item.ym}</span>
-                      <span className="change-value-wrap">
+                    <div key={item.ym} className="change-item">
+                      <div className="change-item-main-row">
+                        <span className="change-ym">{item.ym}</span>
                         <span className={item.diff >= 0 ? "change-value up" : "change-value down"}>
                           {`${item.diff >= 0 ? "+" : ""}${DIFF_FORMAT.format(item.diff)}`}
                         </span>
-                        {item.remark ? <span className="change-remark">{item.remark}</span> : null}
-                      </span>
-                    </button>
+                      </div>
+                      {item.remark ? (
+                        <div className="change-item-remark-row">
+                          <span className="change-remark">{item.remark}</span>
+                        </div>
+                      ) : null}
+                      <div className="change-item-action-row">
+                        <span className="change-item-actions">
+                          <Button
+                            className="change-action-btn"
+                            onClick={() => openLedgerMonth(item.ym)}
+                          >
+                            消费明细
+                          </Button>
+                          {assetDetailVisibleByYM[item.ym] ? (
+                            <Button className="change-action-btn" onClick={() => openAssetManageByYM(item.ym)}>
+                              当月资产明细
+                            </Button>
+                          ) : null}
+                        </span>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
@@ -379,6 +490,8 @@ export default function HomePage() {
           </>
         )}
       </Card>
+        </div>
+      </div>
     </div>
   );
 }

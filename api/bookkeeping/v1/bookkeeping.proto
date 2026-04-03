@@ -15,6 +15,44 @@ service BookkeepingService {
     };
   }
 
+  // 查询某月资产明细（若当月为空且上月存在，会自动复制一份上月数据到当月）
+  rpc AssetDetailList(AssetDetailListRequest) returns (AssetDetailListReply) {
+    option (google.api.http) = {
+      get: "/api/v1/bookkeeping/asset-details"
+    };
+  }
+
+  // 新增资产明细
+  rpc CreateAssetDetail(CreateAssetDetailRequest) returns (CreateAssetDetailReply) {
+    option (google.api.http) = {
+      post: "/api/v1/bookkeeping/asset-details"
+      body: "*"
+    };
+  }
+
+  // 更新资产明细
+  rpc UpdateAssetDetail(UpdateAssetDetailRequest) returns (UpdateAssetDetailReply) {
+    option (google.api.http) = {
+      put: "/api/v1/bookkeeping/asset-details/{detail_id}"
+      body: "*"
+    };
+  }
+
+  // 删除资产明细
+  rpc DeleteAssetDetail(DeleteAssetDetailRequest) returns (DeleteAssetDetailReply) {
+    option (google.api.http) = {
+      delete: "/api/v1/bookkeeping/asset-details/{detail_id}"
+    };
+  }
+
+  // 更新某月资产备注
+  rpc UpdateAssetRemark(UpdateAssetRemarkRequest) returns (UpdateAssetRemarkReply) {
+    option (google.api.http) = {
+      put: "/api/v1/bookkeeping/assets/{ym}/remark"
+      body: "*"
+    };
+  }
+
   // 新增或更新账本记录（按日期+类别+金额唯一更新）
   rpc UpsertLedgerEntry(UpsertLedgerEntryRequest) returns (UpsertLedgerEntryReply) {
     option (google.api.http) = {
@@ -121,6 +159,162 @@ message AssetItem {
 
   // 当月贷款待还本金明细
   repeated LoanBalanceItem loans = 6;
+}
+
+message AssetDetailListRequest {
+
+  // 年月，格式：YYYY.MM
+  string ym = 1;
+}
+
+message AssetDetailListReply {
+
+  // 资产明细列表
+  repeated AssetDetailItem items = 1;
+}
+
+message AssetDetailItem {
+
+  // 明细ID
+  string detail_id = 1;
+
+  // 年月，格式：YYYY.MM
+  string ym = 2;
+
+  // 资产类型：asset / liability
+  string asset_type = 3;
+
+  // 二级分类：现金、储蓄卡、虚拟账户、债权、信用卡、欠款、消费贷款
+  string sub_type = 4;
+
+  // 预置编码（可选）
+  string preset_code = 5;
+
+  // 资产名称
+  string asset_name = 6;
+
+  // 金额（正数）
+  string amount = 7;
+
+  // 备注（可选）
+  string remark = 8;
+
+  // 消费贷总金额（sub_type=消费贷款 时生效）
+  string consumer_loan_total_amount = 9;
+
+  // 消费贷开始月份，格式：YYYY.MM（sub_type=消费贷款 时生效）
+  string consumer_loan_start_ym = 10;
+
+  // 消费贷期数（3/6/12/24/36/60，sub_type=消费贷款 时生效）
+  uint32 consumer_loan_term_months = 11;
+}
+
+message CreateAssetDetailRequest {
+
+  // 年月，格式：YYYY.MM
+  string ym = 1;
+
+  // 资产类型：asset / liability
+  string asset_type = 2;
+
+  // 二级分类：现金、储蓄卡、虚拟账户、债权、信用卡、欠款、消费贷款
+  string sub_type = 3;
+
+  // 预置编码（可选）
+  string preset_code = 4;
+
+  // 资产名称
+  string asset_name = 5;
+
+  // 金额（正数）
+  string amount = 6;
+
+  // 备注（可选）
+  string remark = 7;
+
+  // 消费贷总金额（sub_type=消费贷款 时生效）
+  string consumer_loan_total_amount = 8;
+
+  // 消费贷开始月份，格式：YYYY.MM（sub_type=消费贷款 时生效）
+  string consumer_loan_start_ym = 9;
+
+  // 消费贷期数（3/6/12/24/36/60，sub_type=消费贷款 时生效）
+  uint32 consumer_loan_term_months = 10;
+}
+
+message CreateAssetDetailReply {
+
+  // 明细数据
+  AssetDetailItem item = 1;
+}
+
+message UpdateAssetDetailRequest {
+
+  // 明细ID
+  string detail_id = 1;
+
+  // 年月，格式：YYYY.MM
+  string ym = 2;
+
+  // 资产类型：asset / liability
+  string asset_type = 3;
+
+  // 二级分类：现金、储蓄卡、虚拟账户、债权、信用卡、欠款、消费贷款
+  string sub_type = 4;
+
+  // 预置编码（可选）
+  string preset_code = 5;
+
+  // 资产名称
+  string asset_name = 6;
+
+  // 金额（正数）
+  string amount = 7;
+
+  // 备注（可选）
+  string remark = 8;
+
+  // 消费贷总金额（sub_type=消费贷款 时生效）
+  string consumer_loan_total_amount = 9;
+
+  // 消费贷开始月份，格式：YYYY.MM（sub_type=消费贷款 时生效）
+  string consumer_loan_start_ym = 10;
+
+  // 消费贷期数（3/6/12/24/36/60，sub_type=消费贷款 时生效）
+  uint32 consumer_loan_term_months = 11;
+}
+
+message UpdateAssetDetailReply {
+
+  // 明细数据
+  AssetDetailItem item = 1;
+}
+
+message DeleteAssetDetailRequest {
+
+  // 明细ID
+  string detail_id = 1;
+}
+
+message DeleteAssetDetailReply {
+
+  // 删除是否成功
+  bool success = 1;
+}
+
+message UpdateAssetRemarkRequest {
+
+  // 年月，格式：YYYY.MM
+  string ym = 1;
+
+  // 备注
+  string remark = 2;
+}
+
+message UpdateAssetRemarkReply {
+
+  // 更新后的月资产数据
+  AssetItem item = 1;
 }
 
 message UpsertLedgerEntryRequest {
@@ -445,6 +639,15 @@ message LoanSummaryItem {
 
   // 剩余待还利息（按当前计划测算）
   string remaining_interest = 12;
+
+  // 预计结清日，格式：YYYY-MM-DD
+  string estimated_payoff_date = 13;
+
+  // 合同贷款总期数（月）
+  uint32 term_months = 14;
+
+  // 相比合同贷款总期数提前结清的月数
+  uint32 shortened_months = 15;
 }
 
 message LoanDetailRequest {

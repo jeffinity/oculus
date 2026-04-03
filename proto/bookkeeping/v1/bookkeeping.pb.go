@@ -320,6 +320,771 @@ func (x *AssetItem) GetLoans() []*LoanBalanceItem {
 	return nil
 }
 
+type AssetDetailListRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 年月，格式：YYYY.MM
+	Ym            string `protobuf:"bytes,1,opt,name=ym,proto3" json:"ym,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AssetDetailListRequest) Reset() {
+	*x = AssetDetailListRequest{}
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AssetDetailListRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AssetDetailListRequest) ProtoMessage() {}
+
+func (x *AssetDetailListRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AssetDetailListRequest.ProtoReflect.Descriptor instead.
+func (*AssetDetailListRequest) Descriptor() ([]byte, []int) {
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *AssetDetailListRequest) GetYm() string {
+	if x != nil {
+		return x.Ym
+	}
+	return ""
+}
+
+type AssetDetailListReply struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 资产明细列表
+	Items         []*AssetDetailItem `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AssetDetailListReply) Reset() {
+	*x = AssetDetailListReply{}
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AssetDetailListReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AssetDetailListReply) ProtoMessage() {}
+
+func (x *AssetDetailListReply) ProtoReflect() protoreflect.Message {
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AssetDetailListReply.ProtoReflect.Descriptor instead.
+func (*AssetDetailListReply) Descriptor() ([]byte, []int) {
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *AssetDetailListReply) GetItems() []*AssetDetailItem {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+type AssetDetailItem struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 明细ID
+	DetailId string `protobuf:"bytes,1,opt,name=detail_id,json=detailId,proto3" json:"detail_id,omitempty"`
+	// 年月，格式：YYYY.MM
+	Ym string `protobuf:"bytes,2,opt,name=ym,proto3" json:"ym,omitempty"`
+	// 资产类型：asset / liability
+	AssetType string `protobuf:"bytes,3,opt,name=asset_type,json=assetType,proto3" json:"asset_type,omitempty"`
+	// 二级分类：现金、储蓄卡、虚拟账户、债权、信用卡、欠款、消费贷款
+	SubType string `protobuf:"bytes,4,opt,name=sub_type,json=subType,proto3" json:"sub_type,omitempty"`
+	// 预置编码（可选）
+	PresetCode string `protobuf:"bytes,5,opt,name=preset_code,json=presetCode,proto3" json:"preset_code,omitempty"`
+	// 资产名称
+	AssetName string `protobuf:"bytes,6,opt,name=asset_name,json=assetName,proto3" json:"asset_name,omitempty"`
+	// 金额（正数）
+	Amount string `protobuf:"bytes,7,opt,name=amount,proto3" json:"amount,omitempty"`
+	// 备注（可选）
+	Remark string `protobuf:"bytes,8,opt,name=remark,proto3" json:"remark,omitempty"`
+	// 消费贷总金额（sub_type=消费贷款 时生效）
+	ConsumerLoanTotalAmount string `protobuf:"bytes,9,opt,name=consumer_loan_total_amount,json=consumerLoanTotalAmount,proto3" json:"consumer_loan_total_amount,omitempty"`
+	// 消费贷开始月份，格式：YYYY.MM（sub_type=消费贷款 时生效）
+	ConsumerLoanStartYm string `protobuf:"bytes,10,opt,name=consumer_loan_start_ym,json=consumerLoanStartYm,proto3" json:"consumer_loan_start_ym,omitempty"`
+	// 消费贷期数（3/6/12/24/36/60，sub_type=消费贷款 时生效）
+	ConsumerLoanTermMonths uint32 `protobuf:"varint,11,opt,name=consumer_loan_term_months,json=consumerLoanTermMonths,proto3" json:"consumer_loan_term_months,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *AssetDetailItem) Reset() {
+	*x = AssetDetailItem{}
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AssetDetailItem) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AssetDetailItem) ProtoMessage() {}
+
+func (x *AssetDetailItem) ProtoReflect() protoreflect.Message {
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AssetDetailItem.ProtoReflect.Descriptor instead.
+func (*AssetDetailItem) Descriptor() ([]byte, []int) {
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *AssetDetailItem) GetDetailId() string {
+	if x != nil {
+		return x.DetailId
+	}
+	return ""
+}
+
+func (x *AssetDetailItem) GetYm() string {
+	if x != nil {
+		return x.Ym
+	}
+	return ""
+}
+
+func (x *AssetDetailItem) GetAssetType() string {
+	if x != nil {
+		return x.AssetType
+	}
+	return ""
+}
+
+func (x *AssetDetailItem) GetSubType() string {
+	if x != nil {
+		return x.SubType
+	}
+	return ""
+}
+
+func (x *AssetDetailItem) GetPresetCode() string {
+	if x != nil {
+		return x.PresetCode
+	}
+	return ""
+}
+
+func (x *AssetDetailItem) GetAssetName() string {
+	if x != nil {
+		return x.AssetName
+	}
+	return ""
+}
+
+func (x *AssetDetailItem) GetAmount() string {
+	if x != nil {
+		return x.Amount
+	}
+	return ""
+}
+
+func (x *AssetDetailItem) GetRemark() string {
+	if x != nil {
+		return x.Remark
+	}
+	return ""
+}
+
+func (x *AssetDetailItem) GetConsumerLoanTotalAmount() string {
+	if x != nil {
+		return x.ConsumerLoanTotalAmount
+	}
+	return ""
+}
+
+func (x *AssetDetailItem) GetConsumerLoanStartYm() string {
+	if x != nil {
+		return x.ConsumerLoanStartYm
+	}
+	return ""
+}
+
+func (x *AssetDetailItem) GetConsumerLoanTermMonths() uint32 {
+	if x != nil {
+		return x.ConsumerLoanTermMonths
+	}
+	return 0
+}
+
+type CreateAssetDetailRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 年月，格式：YYYY.MM
+	Ym string `protobuf:"bytes,1,opt,name=ym,proto3" json:"ym,omitempty"`
+	// 资产类型：asset / liability
+	AssetType string `protobuf:"bytes,2,opt,name=asset_type,json=assetType,proto3" json:"asset_type,omitempty"`
+	// 二级分类：现金、储蓄卡、虚拟账户、债权、信用卡、欠款、消费贷款
+	SubType string `protobuf:"bytes,3,opt,name=sub_type,json=subType,proto3" json:"sub_type,omitempty"`
+	// 预置编码（可选）
+	PresetCode string `protobuf:"bytes,4,opt,name=preset_code,json=presetCode,proto3" json:"preset_code,omitempty"`
+	// 资产名称
+	AssetName string `protobuf:"bytes,5,opt,name=asset_name,json=assetName,proto3" json:"asset_name,omitempty"`
+	// 金额（正数）
+	Amount string `protobuf:"bytes,6,opt,name=amount,proto3" json:"amount,omitempty"`
+	// 备注（可选）
+	Remark string `protobuf:"bytes,7,opt,name=remark,proto3" json:"remark,omitempty"`
+	// 消费贷总金额（sub_type=消费贷款 时生效）
+	ConsumerLoanTotalAmount string `protobuf:"bytes,8,opt,name=consumer_loan_total_amount,json=consumerLoanTotalAmount,proto3" json:"consumer_loan_total_amount,omitempty"`
+	// 消费贷开始月份，格式：YYYY.MM（sub_type=消费贷款 时生效）
+	ConsumerLoanStartYm string `protobuf:"bytes,9,opt,name=consumer_loan_start_ym,json=consumerLoanStartYm,proto3" json:"consumer_loan_start_ym,omitempty"`
+	// 消费贷期数（3/6/12/24/36/60，sub_type=消费贷款 时生效）
+	ConsumerLoanTermMonths uint32 `protobuf:"varint,10,opt,name=consumer_loan_term_months,json=consumerLoanTermMonths,proto3" json:"consumer_loan_term_months,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *CreateAssetDetailRequest) Reset() {
+	*x = CreateAssetDetailRequest{}
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateAssetDetailRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateAssetDetailRequest) ProtoMessage() {}
+
+func (x *CreateAssetDetailRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateAssetDetailRequest.ProtoReflect.Descriptor instead.
+func (*CreateAssetDetailRequest) Descriptor() ([]byte, []int) {
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *CreateAssetDetailRequest) GetYm() string {
+	if x != nil {
+		return x.Ym
+	}
+	return ""
+}
+
+func (x *CreateAssetDetailRequest) GetAssetType() string {
+	if x != nil {
+		return x.AssetType
+	}
+	return ""
+}
+
+func (x *CreateAssetDetailRequest) GetSubType() string {
+	if x != nil {
+		return x.SubType
+	}
+	return ""
+}
+
+func (x *CreateAssetDetailRequest) GetPresetCode() string {
+	if x != nil {
+		return x.PresetCode
+	}
+	return ""
+}
+
+func (x *CreateAssetDetailRequest) GetAssetName() string {
+	if x != nil {
+		return x.AssetName
+	}
+	return ""
+}
+
+func (x *CreateAssetDetailRequest) GetAmount() string {
+	if x != nil {
+		return x.Amount
+	}
+	return ""
+}
+
+func (x *CreateAssetDetailRequest) GetRemark() string {
+	if x != nil {
+		return x.Remark
+	}
+	return ""
+}
+
+func (x *CreateAssetDetailRequest) GetConsumerLoanTotalAmount() string {
+	if x != nil {
+		return x.ConsumerLoanTotalAmount
+	}
+	return ""
+}
+
+func (x *CreateAssetDetailRequest) GetConsumerLoanStartYm() string {
+	if x != nil {
+		return x.ConsumerLoanStartYm
+	}
+	return ""
+}
+
+func (x *CreateAssetDetailRequest) GetConsumerLoanTermMonths() uint32 {
+	if x != nil {
+		return x.ConsumerLoanTermMonths
+	}
+	return 0
+}
+
+type CreateAssetDetailReply struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 明细数据
+	Item          *AssetDetailItem `protobuf:"bytes,1,opt,name=item,proto3" json:"item,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateAssetDetailReply) Reset() {
+	*x = CreateAssetDetailReply{}
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateAssetDetailReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateAssetDetailReply) ProtoMessage() {}
+
+func (x *CreateAssetDetailReply) ProtoReflect() protoreflect.Message {
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateAssetDetailReply.ProtoReflect.Descriptor instead.
+func (*CreateAssetDetailReply) Descriptor() ([]byte, []int) {
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *CreateAssetDetailReply) GetItem() *AssetDetailItem {
+	if x != nil {
+		return x.Item
+	}
+	return nil
+}
+
+type UpdateAssetDetailRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 明细ID
+	DetailId string `protobuf:"bytes,1,opt,name=detail_id,json=detailId,proto3" json:"detail_id,omitempty"`
+	// 年月，格式：YYYY.MM
+	Ym string `protobuf:"bytes,2,opt,name=ym,proto3" json:"ym,omitempty"`
+	// 资产类型：asset / liability
+	AssetType string `protobuf:"bytes,3,opt,name=asset_type,json=assetType,proto3" json:"asset_type,omitempty"`
+	// 二级分类：现金、储蓄卡、虚拟账户、债权、信用卡、欠款、消费贷款
+	SubType string `protobuf:"bytes,4,opt,name=sub_type,json=subType,proto3" json:"sub_type,omitempty"`
+	// 预置编码（可选）
+	PresetCode string `protobuf:"bytes,5,opt,name=preset_code,json=presetCode,proto3" json:"preset_code,omitempty"`
+	// 资产名称
+	AssetName string `protobuf:"bytes,6,opt,name=asset_name,json=assetName,proto3" json:"asset_name,omitempty"`
+	// 金额（正数）
+	Amount string `protobuf:"bytes,7,opt,name=amount,proto3" json:"amount,omitempty"`
+	// 备注（可选）
+	Remark string `protobuf:"bytes,8,opt,name=remark,proto3" json:"remark,omitempty"`
+	// 消费贷总金额（sub_type=消费贷款 时生效）
+	ConsumerLoanTotalAmount string `protobuf:"bytes,9,opt,name=consumer_loan_total_amount,json=consumerLoanTotalAmount,proto3" json:"consumer_loan_total_amount,omitempty"`
+	// 消费贷开始月份，格式：YYYY.MM（sub_type=消费贷款 时生效）
+	ConsumerLoanStartYm string `protobuf:"bytes,10,opt,name=consumer_loan_start_ym,json=consumerLoanStartYm,proto3" json:"consumer_loan_start_ym,omitempty"`
+	// 消费贷期数（3/6/12/24/36/60，sub_type=消费贷款 时生效）
+	ConsumerLoanTermMonths uint32 `protobuf:"varint,11,opt,name=consumer_loan_term_months,json=consumerLoanTermMonths,proto3" json:"consumer_loan_term_months,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *UpdateAssetDetailRequest) Reset() {
+	*x = UpdateAssetDetailRequest{}
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateAssetDetailRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateAssetDetailRequest) ProtoMessage() {}
+
+func (x *UpdateAssetDetailRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateAssetDetailRequest.ProtoReflect.Descriptor instead.
+func (*UpdateAssetDetailRequest) Descriptor() ([]byte, []int) {
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *UpdateAssetDetailRequest) GetDetailId() string {
+	if x != nil {
+		return x.DetailId
+	}
+	return ""
+}
+
+func (x *UpdateAssetDetailRequest) GetYm() string {
+	if x != nil {
+		return x.Ym
+	}
+	return ""
+}
+
+func (x *UpdateAssetDetailRequest) GetAssetType() string {
+	if x != nil {
+		return x.AssetType
+	}
+	return ""
+}
+
+func (x *UpdateAssetDetailRequest) GetSubType() string {
+	if x != nil {
+		return x.SubType
+	}
+	return ""
+}
+
+func (x *UpdateAssetDetailRequest) GetPresetCode() string {
+	if x != nil {
+		return x.PresetCode
+	}
+	return ""
+}
+
+func (x *UpdateAssetDetailRequest) GetAssetName() string {
+	if x != nil {
+		return x.AssetName
+	}
+	return ""
+}
+
+func (x *UpdateAssetDetailRequest) GetAmount() string {
+	if x != nil {
+		return x.Amount
+	}
+	return ""
+}
+
+func (x *UpdateAssetDetailRequest) GetRemark() string {
+	if x != nil {
+		return x.Remark
+	}
+	return ""
+}
+
+func (x *UpdateAssetDetailRequest) GetConsumerLoanTotalAmount() string {
+	if x != nil {
+		return x.ConsumerLoanTotalAmount
+	}
+	return ""
+}
+
+func (x *UpdateAssetDetailRequest) GetConsumerLoanStartYm() string {
+	if x != nil {
+		return x.ConsumerLoanStartYm
+	}
+	return ""
+}
+
+func (x *UpdateAssetDetailRequest) GetConsumerLoanTermMonths() uint32 {
+	if x != nil {
+		return x.ConsumerLoanTermMonths
+	}
+	return 0
+}
+
+type UpdateAssetDetailReply struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 明细数据
+	Item          *AssetDetailItem `protobuf:"bytes,1,opt,name=item,proto3" json:"item,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateAssetDetailReply) Reset() {
+	*x = UpdateAssetDetailReply{}
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateAssetDetailReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateAssetDetailReply) ProtoMessage() {}
+
+func (x *UpdateAssetDetailReply) ProtoReflect() protoreflect.Message {
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateAssetDetailReply.ProtoReflect.Descriptor instead.
+func (*UpdateAssetDetailReply) Descriptor() ([]byte, []int) {
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *UpdateAssetDetailReply) GetItem() *AssetDetailItem {
+	if x != nil {
+		return x.Item
+	}
+	return nil
+}
+
+type DeleteAssetDetailRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 明细ID
+	DetailId      string `protobuf:"bytes,1,opt,name=detail_id,json=detailId,proto3" json:"detail_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteAssetDetailRequest) Reset() {
+	*x = DeleteAssetDetailRequest{}
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteAssetDetailRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteAssetDetailRequest) ProtoMessage() {}
+
+func (x *DeleteAssetDetailRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteAssetDetailRequest.ProtoReflect.Descriptor instead.
+func (*DeleteAssetDetailRequest) Descriptor() ([]byte, []int) {
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *DeleteAssetDetailRequest) GetDetailId() string {
+	if x != nil {
+		return x.DetailId
+	}
+	return ""
+}
+
+type DeleteAssetDetailReply struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 删除是否成功
+	Success       bool `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteAssetDetailReply) Reset() {
+	*x = DeleteAssetDetailReply{}
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteAssetDetailReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteAssetDetailReply) ProtoMessage() {}
+
+func (x *DeleteAssetDetailReply) ProtoReflect() protoreflect.Message {
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteAssetDetailReply.ProtoReflect.Descriptor instead.
+func (*DeleteAssetDetailReply) Descriptor() ([]byte, []int) {
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *DeleteAssetDetailReply) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type UpdateAssetRemarkRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 年月，格式：YYYY.MM
+	Ym string `protobuf:"bytes,1,opt,name=ym,proto3" json:"ym,omitempty"`
+	// 备注
+	Remark        string `protobuf:"bytes,2,opt,name=remark,proto3" json:"remark,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateAssetRemarkRequest) Reset() {
+	*x = UpdateAssetRemarkRequest{}
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateAssetRemarkRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateAssetRemarkRequest) ProtoMessage() {}
+
+func (x *UpdateAssetRemarkRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateAssetRemarkRequest.ProtoReflect.Descriptor instead.
+func (*UpdateAssetRemarkRequest) Descriptor() ([]byte, []int) {
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *UpdateAssetRemarkRequest) GetYm() string {
+	if x != nil {
+		return x.Ym
+	}
+	return ""
+}
+
+func (x *UpdateAssetRemarkRequest) GetRemark() string {
+	if x != nil {
+		return x.Remark
+	}
+	return ""
+}
+
+type UpdateAssetRemarkReply struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 更新后的月资产数据
+	Item          *AssetItem `protobuf:"bytes,1,opt,name=item,proto3" json:"item,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateAssetRemarkReply) Reset() {
+	*x = UpdateAssetRemarkReply{}
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateAssetRemarkReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateAssetRemarkReply) ProtoMessage() {}
+
+func (x *UpdateAssetRemarkReply) ProtoReflect() protoreflect.Message {
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateAssetRemarkReply.ProtoReflect.Descriptor instead.
+func (*UpdateAssetRemarkReply) Descriptor() ([]byte, []int) {
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *UpdateAssetRemarkReply) GetItem() *AssetItem {
+	if x != nil {
+		return x.Item
+	}
+	return nil
+}
+
 type UpsertLedgerEntryRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// 日期，格式：YYYY-MM-DD（支持 YYYY.M.D）
@@ -336,7 +1101,7 @@ type UpsertLedgerEntryRequest struct {
 
 func (x *UpsertLedgerEntryRequest) Reset() {
 	*x = UpsertLedgerEntryRequest{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[3]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -348,7 +1113,7 @@ func (x *UpsertLedgerEntryRequest) String() string {
 func (*UpsertLedgerEntryRequest) ProtoMessage() {}
 
 func (x *UpsertLedgerEntryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[3]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -361,7 +1126,7 @@ func (x *UpsertLedgerEntryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpsertLedgerEntryRequest.ProtoReflect.Descriptor instead.
 func (*UpsertLedgerEntryRequest) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{3}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *UpsertLedgerEntryRequest) GetEntryDate() string {
@@ -410,7 +1175,7 @@ type UpsertLedgerEntryReply struct {
 
 func (x *UpsertLedgerEntryReply) Reset() {
 	*x = UpsertLedgerEntryReply{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[4]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -422,7 +1187,7 @@ func (x *UpsertLedgerEntryReply) String() string {
 func (*UpsertLedgerEntryReply) ProtoMessage() {}
 
 func (x *UpsertLedgerEntryReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[4]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -435,7 +1200,7 @@ func (x *UpsertLedgerEntryReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpsertLedgerEntryReply.ProtoReflect.Descriptor instead.
 func (*UpsertLedgerEntryReply) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{4}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *UpsertLedgerEntryReply) GetEntryDate() string {
@@ -483,7 +1248,7 @@ type LedgerListRequest struct {
 
 func (x *LedgerListRequest) Reset() {
 	*x = LedgerListRequest{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[5]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -495,7 +1260,7 @@ func (x *LedgerListRequest) String() string {
 func (*LedgerListRequest) ProtoMessage() {}
 
 func (x *LedgerListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[5]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -508,7 +1273,7 @@ func (x *LedgerListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LedgerListRequest.ProtoReflect.Descriptor instead.
 func (*LedgerListRequest) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{5}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *LedgerListRequest) GetYm() string {
@@ -528,7 +1293,7 @@ type LedgerListReply struct {
 
 func (x *LedgerListReply) Reset() {
 	*x = LedgerListReply{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[6]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -540,7 +1305,7 @@ func (x *LedgerListReply) String() string {
 func (*LedgerListReply) ProtoMessage() {}
 
 func (x *LedgerListReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[6]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -553,7 +1318,7 @@ func (x *LedgerListReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LedgerListReply.ProtoReflect.Descriptor instead.
 func (*LedgerListReply) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{6}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *LedgerListReply) GetItems() []*LedgerItem {
@@ -581,7 +1346,7 @@ type LedgerItem struct {
 
 func (x *LedgerItem) Reset() {
 	*x = LedgerItem{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[7]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -593,7 +1358,7 @@ func (x *LedgerItem) String() string {
 func (*LedgerItem) ProtoMessage() {}
 
 func (x *LedgerItem) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[7]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -606,7 +1371,7 @@ func (x *LedgerItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LedgerItem.ProtoReflect.Descriptor instead.
 func (*LedgerItem) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{7}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *LedgerItem) GetEntryDate() string {
@@ -658,7 +1423,7 @@ type LedgerStatsRequest struct {
 
 func (x *LedgerStatsRequest) Reset() {
 	*x = LedgerStatsRequest{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[8]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -670,7 +1435,7 @@ func (x *LedgerStatsRequest) String() string {
 func (*LedgerStatsRequest) ProtoMessage() {}
 
 func (x *LedgerStatsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[8]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -683,7 +1448,7 @@ func (x *LedgerStatsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LedgerStatsRequest.ProtoReflect.Descriptor instead.
 func (*LedgerStatsRequest) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{8}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *LedgerStatsRequest) GetDimension() string {
@@ -731,7 +1496,7 @@ type LedgerStatsReply struct {
 
 func (x *LedgerStatsReply) Reset() {
 	*x = LedgerStatsReply{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[9]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -743,7 +1508,7 @@ func (x *LedgerStatsReply) String() string {
 func (*LedgerStatsReply) ProtoMessage() {}
 
 func (x *LedgerStatsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[9]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -756,7 +1521,7 @@ func (x *LedgerStatsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LedgerStatsReply.ProtoReflect.Descriptor instead.
 func (*LedgerStatsReply) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{9}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *LedgerStatsReply) GetDimension() string {
@@ -827,7 +1592,7 @@ type LedgerTrendPoint struct {
 
 func (x *LedgerTrendPoint) Reset() {
 	*x = LedgerTrendPoint{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[10]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -839,7 +1604,7 @@ func (x *LedgerTrendPoint) String() string {
 func (*LedgerTrendPoint) ProtoMessage() {}
 
 func (x *LedgerTrendPoint) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[10]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -852,7 +1617,7 @@ func (x *LedgerTrendPoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LedgerTrendPoint.ProtoReflect.Descriptor instead.
 func (*LedgerTrendPoint) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{10}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *LedgerTrendPoint) GetKey() string {
@@ -883,7 +1648,7 @@ type LedgerExpenseRankItem struct {
 
 func (x *LedgerExpenseRankItem) Reset() {
 	*x = LedgerExpenseRankItem{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[11]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -895,7 +1660,7 @@ func (x *LedgerExpenseRankItem) String() string {
 func (*LedgerExpenseRankItem) ProtoMessage() {}
 
 func (x *LedgerExpenseRankItem) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[11]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -908,7 +1673,7 @@ func (x *LedgerExpenseRankItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LedgerExpenseRankItem.ProtoReflect.Descriptor instead.
 func (*LedgerExpenseRankItem) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{11}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *LedgerExpenseRankItem) GetRank() uint32 {
@@ -956,7 +1721,7 @@ type LoanBalanceItem struct {
 
 func (x *LoanBalanceItem) Reset() {
 	*x = LoanBalanceItem{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[12]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -968,7 +1733,7 @@ func (x *LoanBalanceItem) String() string {
 func (*LoanBalanceItem) ProtoMessage() {}
 
 func (x *LoanBalanceItem) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[12]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -981,7 +1746,7 @@ func (x *LoanBalanceItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoanBalanceItem.ProtoReflect.Descriptor instead.
 func (*LoanBalanceItem) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{12}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *LoanBalanceItem) GetLoanId() string {
@@ -1058,7 +1823,7 @@ type CreateMortgageLoanRequest struct {
 
 func (x *CreateMortgageLoanRequest) Reset() {
 	*x = CreateMortgageLoanRequest{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[13]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1070,7 +1835,7 @@ func (x *CreateMortgageLoanRequest) String() string {
 func (*CreateMortgageLoanRequest) ProtoMessage() {}
 
 func (x *CreateMortgageLoanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[13]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1083,7 +1848,7 @@ func (x *CreateMortgageLoanRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateMortgageLoanRequest.ProtoReflect.Descriptor instead.
 func (*CreateMortgageLoanRequest) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{13}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *CreateMortgageLoanRequest) GetLoanName() string {
@@ -1131,7 +1896,7 @@ type CreateMortgageLoanReply struct {
 
 func (x *CreateMortgageLoanReply) Reset() {
 	*x = CreateMortgageLoanReply{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[14]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1143,7 +1908,7 @@ func (x *CreateMortgageLoanReply) String() string {
 func (*CreateMortgageLoanReply) ProtoMessage() {}
 
 func (x *CreateMortgageLoanReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[14]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1156,7 +1921,7 @@ func (x *CreateMortgageLoanReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateMortgageLoanReply.ProtoReflect.Descriptor instead.
 func (*CreateMortgageLoanReply) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{14}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *CreateMortgageLoanReply) GetLoanId() string {
@@ -1180,7 +1945,7 @@ type StartLoanRepaymentRequest struct {
 
 func (x *StartLoanRepaymentRequest) Reset() {
 	*x = StartLoanRepaymentRequest{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[15]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1192,7 +1957,7 @@ func (x *StartLoanRepaymentRequest) String() string {
 func (*StartLoanRepaymentRequest) ProtoMessage() {}
 
 func (x *StartLoanRepaymentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[15]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1205,7 +1970,7 @@ func (x *StartLoanRepaymentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartLoanRepaymentRequest.ProtoReflect.Descriptor instead.
 func (*StartLoanRepaymentRequest) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{15}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *StartLoanRepaymentRequest) GetLoanId() string {
@@ -1245,7 +2010,7 @@ type StartLoanRepaymentReply struct {
 
 func (x *StartLoanRepaymentReply) Reset() {
 	*x = StartLoanRepaymentReply{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[16]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1257,7 +2022,7 @@ func (x *StartLoanRepaymentReply) String() string {
 func (*StartLoanRepaymentReply) ProtoMessage() {}
 
 func (x *StartLoanRepaymentReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[16]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1270,7 +2035,7 @@ func (x *StartLoanRepaymentReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartLoanRepaymentReply.ProtoReflect.Descriptor instead.
 func (*StartLoanRepaymentReply) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{16}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *StartLoanRepaymentReply) GetLoanId() string {
@@ -1315,7 +2080,7 @@ type AdjustLoanRateRequest struct {
 
 func (x *AdjustLoanRateRequest) Reset() {
 	*x = AdjustLoanRateRequest{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[17]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1327,7 +2092,7 @@ func (x *AdjustLoanRateRequest) String() string {
 func (*AdjustLoanRateRequest) ProtoMessage() {}
 
 func (x *AdjustLoanRateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[17]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1340,7 +2105,7 @@ func (x *AdjustLoanRateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdjustLoanRateRequest.ProtoReflect.Descriptor instead.
 func (*AdjustLoanRateRequest) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{17}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *AdjustLoanRateRequest) GetLoanId() string {
@@ -1378,7 +2143,7 @@ type AdjustLoanRateReply struct {
 
 func (x *AdjustLoanRateReply) Reset() {
 	*x = AdjustLoanRateReply{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[18]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1390,7 +2155,7 @@ func (x *AdjustLoanRateReply) String() string {
 func (*AdjustLoanRateReply) ProtoMessage() {}
 
 func (x *AdjustLoanRateReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[18]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1403,7 +2168,7 @@ func (x *AdjustLoanRateReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdjustLoanRateReply.ProtoReflect.Descriptor instead.
 func (*AdjustLoanRateReply) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{18}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *AdjustLoanRateReply) GetLoanId() string {
@@ -1443,7 +2208,7 @@ type AddLoanPrepaymentRequest struct {
 
 func (x *AddLoanPrepaymentRequest) Reset() {
 	*x = AddLoanPrepaymentRequest{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[19]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1455,7 +2220,7 @@ func (x *AddLoanPrepaymentRequest) String() string {
 func (*AddLoanPrepaymentRequest) ProtoMessage() {}
 
 func (x *AddLoanPrepaymentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[19]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1468,7 +2233,7 @@ func (x *AddLoanPrepaymentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddLoanPrepaymentRequest.ProtoReflect.Descriptor instead.
 func (*AddLoanPrepaymentRequest) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{19}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *AddLoanPrepaymentRequest) GetLoanId() string {
@@ -1515,7 +2280,7 @@ type AddLoanPrepaymentReply struct {
 
 func (x *AddLoanPrepaymentReply) Reset() {
 	*x = AddLoanPrepaymentReply{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[20]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1527,7 +2292,7 @@ func (x *AddLoanPrepaymentReply) String() string {
 func (*AddLoanPrepaymentReply) ProtoMessage() {}
 
 func (x *AddLoanPrepaymentReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[20]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1540,7 +2305,7 @@ func (x *AddLoanPrepaymentReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddLoanPrepaymentReply.ProtoReflect.Descriptor instead.
 func (*AddLoanPrepaymentReply) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{20}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *AddLoanPrepaymentReply) GetLoanId() string {
@@ -1579,7 +2344,7 @@ type LoanSummaryListRequest struct {
 
 func (x *LoanSummaryListRequest) Reset() {
 	*x = LoanSummaryListRequest{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[21]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1591,7 +2356,7 @@ func (x *LoanSummaryListRequest) String() string {
 func (*LoanSummaryListRequest) ProtoMessage() {}
 
 func (x *LoanSummaryListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[21]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1604,7 +2369,7 @@ func (x *LoanSummaryListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoanSummaryListRequest.ProtoReflect.Descriptor instead.
 func (*LoanSummaryListRequest) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{21}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{32}
 }
 
 type LoanSummaryListReply struct {
@@ -1617,7 +2382,7 @@ type LoanSummaryListReply struct {
 
 func (x *LoanSummaryListReply) Reset() {
 	*x = LoanSummaryListReply{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[22]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1629,7 +2394,7 @@ func (x *LoanSummaryListReply) String() string {
 func (*LoanSummaryListReply) ProtoMessage() {}
 
 func (x *LoanSummaryListReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[22]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1642,7 +2407,7 @@ func (x *LoanSummaryListReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoanSummaryListReply.ProtoReflect.Descriptor instead.
 func (*LoanSummaryListReply) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{22}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *LoanSummaryListReply) GetItems() []*LoanSummaryItem {
@@ -1678,13 +2443,19 @@ type LoanSummaryItem struct {
 	NextDueDate string `protobuf:"bytes,11,opt,name=next_due_date,json=nextDueDate,proto3" json:"next_due_date,omitempty"`
 	// 剩余待还利息（按当前计划测算）
 	RemainingInterest string `protobuf:"bytes,12,opt,name=remaining_interest,json=remainingInterest,proto3" json:"remaining_interest,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// 预计结清日，格式：YYYY-MM-DD
+	EstimatedPayoffDate string `protobuf:"bytes,13,opt,name=estimated_payoff_date,json=estimatedPayoffDate,proto3" json:"estimated_payoff_date,omitempty"`
+	// 合同贷款总期数（月）
+	TermMonths uint32 `protobuf:"varint,14,opt,name=term_months,json=termMonths,proto3" json:"term_months,omitempty"`
+	// 相比合同贷款总期数提前结清的月数
+	ShortenedMonths uint32 `protobuf:"varint,15,opt,name=shortened_months,json=shortenedMonths,proto3" json:"shortened_months,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *LoanSummaryItem) Reset() {
 	*x = LoanSummaryItem{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[23]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1696,7 +2467,7 @@ func (x *LoanSummaryItem) String() string {
 func (*LoanSummaryItem) ProtoMessage() {}
 
 func (x *LoanSummaryItem) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[23]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1709,7 +2480,7 @@ func (x *LoanSummaryItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoanSummaryItem.ProtoReflect.Descriptor instead.
 func (*LoanSummaryItem) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{23}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *LoanSummaryItem) GetLoanId() string {
@@ -1796,6 +2567,27 @@ func (x *LoanSummaryItem) GetRemainingInterest() string {
 	return ""
 }
 
+func (x *LoanSummaryItem) GetEstimatedPayoffDate() string {
+	if x != nil {
+		return x.EstimatedPayoffDate
+	}
+	return ""
+}
+
+func (x *LoanSummaryItem) GetTermMonths() uint32 {
+	if x != nil {
+		return x.TermMonths
+	}
+	return 0
+}
+
+func (x *LoanSummaryItem) GetShortenedMonths() uint32 {
+	if x != nil {
+		return x.ShortenedMonths
+	}
+	return 0
+}
+
 type LoanDetailRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// 贷款ID
@@ -1808,7 +2600,7 @@ type LoanDetailRequest struct {
 
 func (x *LoanDetailRequest) Reset() {
 	*x = LoanDetailRequest{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[24]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1820,7 +2612,7 @@ func (x *LoanDetailRequest) String() string {
 func (*LoanDetailRequest) ProtoMessage() {}
 
 func (x *LoanDetailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[24]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1833,7 +2625,7 @@ func (x *LoanDetailRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoanDetailRequest.ProtoReflect.Descriptor instead.
 func (*LoanDetailRequest) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{24}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *LoanDetailRequest) GetLoanId() string {
@@ -1866,7 +2658,7 @@ type LoanDetailReply struct {
 
 func (x *LoanDetailReply) Reset() {
 	*x = LoanDetailReply{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[25]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1878,7 +2670,7 @@ func (x *LoanDetailReply) String() string {
 func (*LoanDetailReply) ProtoMessage() {}
 
 func (x *LoanDetailReply) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[25]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1891,7 +2683,7 @@ func (x *LoanDetailReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoanDetailReply.ProtoReflect.Descriptor instead.
 func (*LoanDetailReply) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{25}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *LoanDetailReply) GetSummary() *LoanSummaryItem {
@@ -1942,7 +2734,7 @@ type LoanRepaymentPlanItem struct {
 
 func (x *LoanRepaymentPlanItem) Reset() {
 	*x = LoanRepaymentPlanItem{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[26]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1954,7 +2746,7 @@ func (x *LoanRepaymentPlanItem) String() string {
 func (*LoanRepaymentPlanItem) ProtoMessage() {}
 
 func (x *LoanRepaymentPlanItem) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[26]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1967,7 +2759,7 @@ func (x *LoanRepaymentPlanItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoanRepaymentPlanItem.ProtoReflect.Descriptor instead.
 func (*LoanRepaymentPlanItem) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{26}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *LoanRepaymentPlanItem) GetPeriod() uint32 {
@@ -2028,7 +2820,7 @@ type LoanRateAdjustmentHistoryItem struct {
 
 func (x *LoanRateAdjustmentHistoryItem) Reset() {
 	*x = LoanRateAdjustmentHistoryItem{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[27]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2040,7 +2832,7 @@ func (x *LoanRateAdjustmentHistoryItem) String() string {
 func (*LoanRateAdjustmentHistoryItem) ProtoMessage() {}
 
 func (x *LoanRateAdjustmentHistoryItem) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[27]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2053,7 +2845,7 @@ func (x *LoanRateAdjustmentHistoryItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoanRateAdjustmentHistoryItem.ProtoReflect.Descriptor instead.
 func (*LoanRateAdjustmentHistoryItem) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{27}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *LoanRateAdjustmentHistoryItem) GetEffectiveDate() string {
@@ -2100,7 +2892,7 @@ type LoanPrepaymentHistoryItem struct {
 
 func (x *LoanPrepaymentHistoryItem) Reset() {
 	*x = LoanPrepaymentHistoryItem{}
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[28]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2112,7 +2904,7 @@ func (x *LoanPrepaymentHistoryItem) String() string {
 func (*LoanPrepaymentHistoryItem) ProtoMessage() {}
 
 func (x *LoanPrepaymentHistoryItem) ProtoReflect() protoreflect.Message {
-	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[28]
+	mi := &file_api_bookkeeping_v1_bookkeeping_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2125,7 +2917,7 @@ func (x *LoanPrepaymentHistoryItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoanPrepaymentHistoryItem.ProtoReflect.Descriptor instead.
 func (*LoanPrepaymentHistoryItem) Descriptor() ([]byte, []int) {
-	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{28}
+	return file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *LoanPrepaymentHistoryItem) GetPrepaymentDate() string {
@@ -2173,7 +2965,71 @@ const file_api_bookkeeping_v1_bookkeeping_proto_rawDesc = "" +
 	"\tnet_asset\x18\x03 \x01(\tR\bnetAsset\x12\x1c\n" +
 	"\tliability\x18\x04 \x01(\tR\tliability\x12\x16\n" +
 	"\x06remark\x18\x05 \x01(\tR\x06remark\x129\n" +
-	"\x05loans\x18\x06 \x03(\v2#.api.bookkeeping.v1.LoanBalanceItemR\x05loans\"\x85\x01\n" +
+	"\x05loans\x18\x06 \x03(\v2#.api.bookkeeping.v1.LoanBalanceItemR\x05loans\"(\n" +
+	"\x16AssetDetailListRequest\x12\x0e\n" +
+	"\x02ym\x18\x01 \x01(\tR\x02ym\"Q\n" +
+	"\x14AssetDetailListReply\x129\n" +
+	"\x05items\x18\x01 \x03(\v2#.api.bookkeeping.v1.AssetDetailItemR\x05items\"\x95\x03\n" +
+	"\x0fAssetDetailItem\x12\x1b\n" +
+	"\tdetail_id\x18\x01 \x01(\tR\bdetailId\x12\x0e\n" +
+	"\x02ym\x18\x02 \x01(\tR\x02ym\x12\x1d\n" +
+	"\n" +
+	"asset_type\x18\x03 \x01(\tR\tassetType\x12\x19\n" +
+	"\bsub_type\x18\x04 \x01(\tR\asubType\x12\x1f\n" +
+	"\vpreset_code\x18\x05 \x01(\tR\n" +
+	"presetCode\x12\x1d\n" +
+	"\n" +
+	"asset_name\x18\x06 \x01(\tR\tassetName\x12\x16\n" +
+	"\x06amount\x18\a \x01(\tR\x06amount\x12\x16\n" +
+	"\x06remark\x18\b \x01(\tR\x06remark\x12;\n" +
+	"\x1aconsumer_loan_total_amount\x18\t \x01(\tR\x17consumerLoanTotalAmount\x123\n" +
+	"\x16consumer_loan_start_ym\x18\n" +
+	" \x01(\tR\x13consumerLoanStartYm\x129\n" +
+	"\x19consumer_loan_term_months\x18\v \x01(\rR\x16consumerLoanTermMonths\"\x81\x03\n" +
+	"\x18CreateAssetDetailRequest\x12\x0e\n" +
+	"\x02ym\x18\x01 \x01(\tR\x02ym\x12\x1d\n" +
+	"\n" +
+	"asset_type\x18\x02 \x01(\tR\tassetType\x12\x19\n" +
+	"\bsub_type\x18\x03 \x01(\tR\asubType\x12\x1f\n" +
+	"\vpreset_code\x18\x04 \x01(\tR\n" +
+	"presetCode\x12\x1d\n" +
+	"\n" +
+	"asset_name\x18\x05 \x01(\tR\tassetName\x12\x16\n" +
+	"\x06amount\x18\x06 \x01(\tR\x06amount\x12\x16\n" +
+	"\x06remark\x18\a \x01(\tR\x06remark\x12;\n" +
+	"\x1aconsumer_loan_total_amount\x18\b \x01(\tR\x17consumerLoanTotalAmount\x123\n" +
+	"\x16consumer_loan_start_ym\x18\t \x01(\tR\x13consumerLoanStartYm\x129\n" +
+	"\x19consumer_loan_term_months\x18\n" +
+	" \x01(\rR\x16consumerLoanTermMonths\"Q\n" +
+	"\x16CreateAssetDetailReply\x127\n" +
+	"\x04item\x18\x01 \x01(\v2#.api.bookkeeping.v1.AssetDetailItemR\x04item\"\x9e\x03\n" +
+	"\x18UpdateAssetDetailRequest\x12\x1b\n" +
+	"\tdetail_id\x18\x01 \x01(\tR\bdetailId\x12\x0e\n" +
+	"\x02ym\x18\x02 \x01(\tR\x02ym\x12\x1d\n" +
+	"\n" +
+	"asset_type\x18\x03 \x01(\tR\tassetType\x12\x19\n" +
+	"\bsub_type\x18\x04 \x01(\tR\asubType\x12\x1f\n" +
+	"\vpreset_code\x18\x05 \x01(\tR\n" +
+	"presetCode\x12\x1d\n" +
+	"\n" +
+	"asset_name\x18\x06 \x01(\tR\tassetName\x12\x16\n" +
+	"\x06amount\x18\a \x01(\tR\x06amount\x12\x16\n" +
+	"\x06remark\x18\b \x01(\tR\x06remark\x12;\n" +
+	"\x1aconsumer_loan_total_amount\x18\t \x01(\tR\x17consumerLoanTotalAmount\x123\n" +
+	"\x16consumer_loan_start_ym\x18\n" +
+	" \x01(\tR\x13consumerLoanStartYm\x129\n" +
+	"\x19consumer_loan_term_months\x18\v \x01(\rR\x16consumerLoanTermMonths\"Q\n" +
+	"\x16UpdateAssetDetailReply\x127\n" +
+	"\x04item\x18\x01 \x01(\v2#.api.bookkeeping.v1.AssetDetailItemR\x04item\"7\n" +
+	"\x18DeleteAssetDetailRequest\x12\x1b\n" +
+	"\tdetail_id\x18\x01 \x01(\tR\bdetailId\"2\n" +
+	"\x16DeleteAssetDetailReply\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"B\n" +
+	"\x18UpdateAssetRemarkRequest\x12\x0e\n" +
+	"\x02ym\x18\x01 \x01(\tR\x02ym\x12\x16\n" +
+	"\x06remark\x18\x02 \x01(\tR\x06remark\"K\n" +
+	"\x16UpdateAssetRemarkReply\x121\n" +
+	"\x04item\x18\x01 \x01(\v2\x1d.api.bookkeeping.v1.AssetItemR\x04item\"\x85\x01\n" +
 	"\x18UpsertLedgerEntryRequest\x12\x1d\n" +
 	"\n" +
 	"entry_date\x18\x01 \x01(\tR\tentryDate\x12\x16\n" +
@@ -2271,7 +3127,7 @@ const file_api_bookkeeping_v1_bookkeeping_proto_rawDesc = "" +
 	"\x04mode\x18\x04 \x01(\x0e2\".api.bookkeeping.v1.PrepaymentModeR\x04mode\"\x18\n" +
 	"\x16LoanSummaryListRequest\"Q\n" +
 	"\x14LoanSummaryListReply\x129\n" +
-	"\x05items\x18\x01 \x03(\v2#.api.bookkeeping.v1.LoanSummaryItemR\x05items\"\xfa\x03\n" +
+	"\x05items\x18\x01 \x03(\v2#.api.bookkeeping.v1.LoanSummaryItemR\x05items\"\xfa\x04\n" +
 	"\x0fLoanSummaryItem\x12\x17\n" +
 	"\aloan_id\x18\x01 \x01(\tR\x06loanId\x12\x1b\n" +
 	"\tloan_name\x18\x02 \x01(\tR\bloanName\x129\n" +
@@ -2286,7 +3142,11 @@ const file_api_bookkeeping_v1_bookkeeping_proto_rawDesc = "" +
 	"\x13cumulative_interest\x18\n" +
 	" \x01(\tR\x12cumulativeInterest\x12\"\n" +
 	"\rnext_due_date\x18\v \x01(\tR\vnextDueDate\x12-\n" +
-	"\x12remaining_interest\x18\f \x01(\tR\x11remainingInterest\"D\n" +
+	"\x12remaining_interest\x18\f \x01(\tR\x11remainingInterest\x122\n" +
+	"\x15estimated_payoff_date\x18\r \x01(\tR\x13estimatedPayoffDate\x12\x1f\n" +
+	"\vterm_months\x18\x0e \x01(\rR\n" +
+	"termMonths\x12)\n" +
+	"\x10shortened_months\x18\x0f \x01(\rR\x0fshortenedMonths\"D\n" +
 	"\x11LoanDetailRequest\x12\x17\n" +
 	"\aloan_id\x18\x01 \x01(\tR\x06loanId\x12\x16\n" +
 	"\x06months\x18\x02 \x01(\rR\x06months\"\xc0\x02\n" +
@@ -2318,9 +3178,14 @@ const file_api_bookkeeping_v1_bookkeeping_proto_rawDesc = "" +
 	"\x0ePrepaymentMode\x12\x1f\n" +
 	"\x1bPREPAYMENT_MODE_UNSPECIFIED\x10\x00\x12-\n" +
 	")PREPAYMENT_MODE_KEEP_PAYMENT_SHORTEN_TERM\x10\x01\x12,\n" +
-	"(PREPAYMENT_MODE_KEEP_TERM_REDUCE_PAYMENT\x10\x022\xed\v\n" +
+	"(PREPAYMENT_MODE_KEEP_TERM_REDUCE_PAYMENT\x10\x022\x94\x12\n" +
 	"\x12BookkeepingService\x12y\n" +
-	"\tAssetList\x12$.api.bookkeeping.v1.AssetListRequest\x1a\".api.bookkeeping.v1.AssetListReply\"\"\x82\xd3\xe4\x93\x02\x1c\x12\x1a/api/v1/bookkeeping/assets\x12\x95\x01\n" +
+	"\tAssetList\x12$.api.bookkeeping.v1.AssetListRequest\x1a\".api.bookkeeping.v1.AssetListReply\"\"\x82\xd3\xe4\x93\x02\x1c\x12\x1a/api/v1/bookkeeping/assets\x12\x92\x01\n" +
+	"\x0fAssetDetailList\x12*.api.bookkeeping.v1.AssetDetailListRequest\x1a(.api.bookkeeping.v1.AssetDetailListReply\")\x82\xd3\xe4\x93\x02#\x12!/api/v1/bookkeeping/asset-details\x12\x9b\x01\n" +
+	"\x11CreateAssetDetail\x12,.api.bookkeeping.v1.CreateAssetDetailRequest\x1a*.api.bookkeeping.v1.CreateAssetDetailReply\",\x82\xd3\xe4\x93\x02&:\x01*\"!/api/v1/bookkeeping/asset-details\x12\xa7\x01\n" +
+	"\x11UpdateAssetDetail\x12,.api.bookkeeping.v1.UpdateAssetDetailRequest\x1a*.api.bookkeeping.v1.UpdateAssetDetailReply\"8\x82\xd3\xe4\x93\x022:\x01*\x1a-/api/v1/bookkeeping/asset-details/{detail_id}\x12\xa4\x01\n" +
+	"\x11DeleteAssetDetail\x12,.api.bookkeeping.v1.DeleteAssetDetailRequest\x1a*.api.bookkeeping.v1.DeleteAssetDetailReply\"5\x82\xd3\xe4\x93\x02/*-/api/v1/bookkeeping/asset-details/{detail_id}\x12\xa0\x01\n" +
+	"\x11UpdateAssetRemark\x12,.api.bookkeeping.v1.UpdateAssetRemarkRequest\x1a*.api.bookkeeping.v1.UpdateAssetRemarkReply\"1\x82\xd3\xe4\x93\x02+:\x01*\x1a&/api/v1/bookkeeping/assets/{ym}/remark\x12\x95\x01\n" +
 	"\x11UpsertLedgerEntry\x12,.api.bookkeeping.v1.UpsertLedgerEntryRequest\x1a*.api.bookkeeping.v1.UpsertLedgerEntryReply\"&\x82\xd3\xe4\x93\x02 :\x01*\"\x1b/api/v1/bookkeeping/ledgers\x12}\n" +
 	"\n" +
 	"LedgerList\x12%.api.bookkeeping.v1.LedgerListRequest\x1a#.api.bookkeeping.v1.LedgerListReply\"#\x82\xd3\xe4\x93\x02\x1d\x12\x1b/api/v1/bookkeeping/ledgers\x12\x86\x01\n" +
@@ -2347,81 +3212,106 @@ func file_api_bookkeeping_v1_bookkeeping_proto_rawDescGZIP() []byte {
 }
 
 var file_api_bookkeeping_v1_bookkeeping_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_api_bookkeeping_v1_bookkeeping_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
+var file_api_bookkeeping_v1_bookkeeping_proto_msgTypes = make([]protoimpl.MessageInfo, 40)
 var file_api_bookkeeping_v1_bookkeeping_proto_goTypes = []any{
 	(LoanType)(0),                         // 0: api.bookkeeping.v1.LoanType
 	(PrepaymentMode)(0),                   // 1: api.bookkeeping.v1.PrepaymentMode
 	(*AssetListRequest)(nil),              // 2: api.bookkeeping.v1.AssetListRequest
 	(*AssetListReply)(nil),                // 3: api.bookkeeping.v1.AssetListReply
 	(*AssetItem)(nil),                     // 4: api.bookkeeping.v1.AssetItem
-	(*UpsertLedgerEntryRequest)(nil),      // 5: api.bookkeeping.v1.UpsertLedgerEntryRequest
-	(*UpsertLedgerEntryReply)(nil),        // 6: api.bookkeeping.v1.UpsertLedgerEntryReply
-	(*LedgerListRequest)(nil),             // 7: api.bookkeeping.v1.LedgerListRequest
-	(*LedgerListReply)(nil),               // 8: api.bookkeeping.v1.LedgerListReply
-	(*LedgerItem)(nil),                    // 9: api.bookkeeping.v1.LedgerItem
-	(*LedgerStatsRequest)(nil),            // 10: api.bookkeeping.v1.LedgerStatsRequest
-	(*LedgerStatsReply)(nil),              // 11: api.bookkeeping.v1.LedgerStatsReply
-	(*LedgerTrendPoint)(nil),              // 12: api.bookkeeping.v1.LedgerTrendPoint
-	(*LedgerExpenseRankItem)(nil),         // 13: api.bookkeeping.v1.LedgerExpenseRankItem
-	(*LoanBalanceItem)(nil),               // 14: api.bookkeeping.v1.LoanBalanceItem
-	(*CreateMortgageLoanRequest)(nil),     // 15: api.bookkeeping.v1.CreateMortgageLoanRequest
-	(*CreateMortgageLoanReply)(nil),       // 16: api.bookkeeping.v1.CreateMortgageLoanReply
-	(*StartLoanRepaymentRequest)(nil),     // 17: api.bookkeeping.v1.StartLoanRepaymentRequest
-	(*StartLoanRepaymentReply)(nil),       // 18: api.bookkeeping.v1.StartLoanRepaymentReply
-	(*AdjustLoanRateRequest)(nil),         // 19: api.bookkeeping.v1.AdjustLoanRateRequest
-	(*AdjustLoanRateReply)(nil),           // 20: api.bookkeeping.v1.AdjustLoanRateReply
-	(*AddLoanPrepaymentRequest)(nil),      // 21: api.bookkeeping.v1.AddLoanPrepaymentRequest
-	(*AddLoanPrepaymentReply)(nil),        // 22: api.bookkeeping.v1.AddLoanPrepaymentReply
-	(*LoanSummaryListRequest)(nil),        // 23: api.bookkeeping.v1.LoanSummaryListRequest
-	(*LoanSummaryListReply)(nil),          // 24: api.bookkeeping.v1.LoanSummaryListReply
-	(*LoanSummaryItem)(nil),               // 25: api.bookkeeping.v1.LoanSummaryItem
-	(*LoanDetailRequest)(nil),             // 26: api.bookkeeping.v1.LoanDetailRequest
-	(*LoanDetailReply)(nil),               // 27: api.bookkeeping.v1.LoanDetailReply
-	(*LoanRepaymentPlanItem)(nil),         // 28: api.bookkeeping.v1.LoanRepaymentPlanItem
-	(*LoanRateAdjustmentHistoryItem)(nil), // 29: api.bookkeeping.v1.LoanRateAdjustmentHistoryItem
-	(*LoanPrepaymentHistoryItem)(nil),     // 30: api.bookkeeping.v1.LoanPrepaymentHistoryItem
+	(*AssetDetailListRequest)(nil),        // 5: api.bookkeeping.v1.AssetDetailListRequest
+	(*AssetDetailListReply)(nil),          // 6: api.bookkeeping.v1.AssetDetailListReply
+	(*AssetDetailItem)(nil),               // 7: api.bookkeeping.v1.AssetDetailItem
+	(*CreateAssetDetailRequest)(nil),      // 8: api.bookkeeping.v1.CreateAssetDetailRequest
+	(*CreateAssetDetailReply)(nil),        // 9: api.bookkeeping.v1.CreateAssetDetailReply
+	(*UpdateAssetDetailRequest)(nil),      // 10: api.bookkeeping.v1.UpdateAssetDetailRequest
+	(*UpdateAssetDetailReply)(nil),        // 11: api.bookkeeping.v1.UpdateAssetDetailReply
+	(*DeleteAssetDetailRequest)(nil),      // 12: api.bookkeeping.v1.DeleteAssetDetailRequest
+	(*DeleteAssetDetailReply)(nil),        // 13: api.bookkeeping.v1.DeleteAssetDetailReply
+	(*UpdateAssetRemarkRequest)(nil),      // 14: api.bookkeeping.v1.UpdateAssetRemarkRequest
+	(*UpdateAssetRemarkReply)(nil),        // 15: api.bookkeeping.v1.UpdateAssetRemarkReply
+	(*UpsertLedgerEntryRequest)(nil),      // 16: api.bookkeeping.v1.UpsertLedgerEntryRequest
+	(*UpsertLedgerEntryReply)(nil),        // 17: api.bookkeeping.v1.UpsertLedgerEntryReply
+	(*LedgerListRequest)(nil),             // 18: api.bookkeeping.v1.LedgerListRequest
+	(*LedgerListReply)(nil),               // 19: api.bookkeeping.v1.LedgerListReply
+	(*LedgerItem)(nil),                    // 20: api.bookkeeping.v1.LedgerItem
+	(*LedgerStatsRequest)(nil),            // 21: api.bookkeeping.v1.LedgerStatsRequest
+	(*LedgerStatsReply)(nil),              // 22: api.bookkeeping.v1.LedgerStatsReply
+	(*LedgerTrendPoint)(nil),              // 23: api.bookkeeping.v1.LedgerTrendPoint
+	(*LedgerExpenseRankItem)(nil),         // 24: api.bookkeeping.v1.LedgerExpenseRankItem
+	(*LoanBalanceItem)(nil),               // 25: api.bookkeeping.v1.LoanBalanceItem
+	(*CreateMortgageLoanRequest)(nil),     // 26: api.bookkeeping.v1.CreateMortgageLoanRequest
+	(*CreateMortgageLoanReply)(nil),       // 27: api.bookkeeping.v1.CreateMortgageLoanReply
+	(*StartLoanRepaymentRequest)(nil),     // 28: api.bookkeeping.v1.StartLoanRepaymentRequest
+	(*StartLoanRepaymentReply)(nil),       // 29: api.bookkeeping.v1.StartLoanRepaymentReply
+	(*AdjustLoanRateRequest)(nil),         // 30: api.bookkeeping.v1.AdjustLoanRateRequest
+	(*AdjustLoanRateReply)(nil),           // 31: api.bookkeeping.v1.AdjustLoanRateReply
+	(*AddLoanPrepaymentRequest)(nil),      // 32: api.bookkeeping.v1.AddLoanPrepaymentRequest
+	(*AddLoanPrepaymentReply)(nil),        // 33: api.bookkeeping.v1.AddLoanPrepaymentReply
+	(*LoanSummaryListRequest)(nil),        // 34: api.bookkeeping.v1.LoanSummaryListRequest
+	(*LoanSummaryListReply)(nil),          // 35: api.bookkeeping.v1.LoanSummaryListReply
+	(*LoanSummaryItem)(nil),               // 36: api.bookkeeping.v1.LoanSummaryItem
+	(*LoanDetailRequest)(nil),             // 37: api.bookkeeping.v1.LoanDetailRequest
+	(*LoanDetailReply)(nil),               // 38: api.bookkeeping.v1.LoanDetailReply
+	(*LoanRepaymentPlanItem)(nil),         // 39: api.bookkeeping.v1.LoanRepaymentPlanItem
+	(*LoanRateAdjustmentHistoryItem)(nil), // 40: api.bookkeeping.v1.LoanRateAdjustmentHistoryItem
+	(*LoanPrepaymentHistoryItem)(nil),     // 41: api.bookkeeping.v1.LoanPrepaymentHistoryItem
 }
 var file_api_bookkeeping_v1_bookkeeping_proto_depIdxs = []int32{
 	4,  // 0: api.bookkeeping.v1.AssetListReply.items:type_name -> api.bookkeeping.v1.AssetItem
-	14, // 1: api.bookkeeping.v1.AssetItem.loans:type_name -> api.bookkeeping.v1.LoanBalanceItem
-	9,  // 2: api.bookkeeping.v1.LedgerListReply.items:type_name -> api.bookkeeping.v1.LedgerItem
-	12, // 3: api.bookkeeping.v1.LedgerStatsReply.trend_points:type_name -> api.bookkeeping.v1.LedgerTrendPoint
-	13, // 4: api.bookkeeping.v1.LedgerStatsReply.expense_rankings:type_name -> api.bookkeeping.v1.LedgerExpenseRankItem
-	0,  // 5: api.bookkeeping.v1.LoanBalanceItem.loan_type:type_name -> api.bookkeeping.v1.LoanType
-	1,  // 6: api.bookkeeping.v1.AddLoanPrepaymentRequest.mode:type_name -> api.bookkeeping.v1.PrepaymentMode
-	1,  // 7: api.bookkeeping.v1.AddLoanPrepaymentReply.mode:type_name -> api.bookkeeping.v1.PrepaymentMode
-	25, // 8: api.bookkeeping.v1.LoanSummaryListReply.items:type_name -> api.bookkeeping.v1.LoanSummaryItem
-	0,  // 9: api.bookkeeping.v1.LoanSummaryItem.loan_type:type_name -> api.bookkeeping.v1.LoanType
-	25, // 10: api.bookkeeping.v1.LoanDetailReply.summary:type_name -> api.bookkeeping.v1.LoanSummaryItem
-	28, // 11: api.bookkeeping.v1.LoanDetailReply.plans:type_name -> api.bookkeeping.v1.LoanRepaymentPlanItem
-	29, // 12: api.bookkeeping.v1.LoanDetailReply.rate_adjustments:type_name -> api.bookkeeping.v1.LoanRateAdjustmentHistoryItem
-	30, // 13: api.bookkeeping.v1.LoanDetailReply.prepayments:type_name -> api.bookkeeping.v1.LoanPrepaymentHistoryItem
-	1,  // 14: api.bookkeeping.v1.LoanPrepaymentHistoryItem.mode:type_name -> api.bookkeeping.v1.PrepaymentMode
-	2,  // 15: api.bookkeeping.v1.BookkeepingService.AssetList:input_type -> api.bookkeeping.v1.AssetListRequest
-	5,  // 16: api.bookkeeping.v1.BookkeepingService.UpsertLedgerEntry:input_type -> api.bookkeeping.v1.UpsertLedgerEntryRequest
-	7,  // 17: api.bookkeeping.v1.BookkeepingService.LedgerList:input_type -> api.bookkeeping.v1.LedgerListRequest
-	10, // 18: api.bookkeeping.v1.BookkeepingService.LedgerStats:input_type -> api.bookkeeping.v1.LedgerStatsRequest
-	15, // 19: api.bookkeeping.v1.BookkeepingService.CreateMortgageLoan:input_type -> api.bookkeeping.v1.CreateMortgageLoanRequest
-	17, // 20: api.bookkeeping.v1.BookkeepingService.StartLoanRepayment:input_type -> api.bookkeeping.v1.StartLoanRepaymentRequest
-	19, // 21: api.bookkeeping.v1.BookkeepingService.AdjustLoanRate:input_type -> api.bookkeeping.v1.AdjustLoanRateRequest
-	21, // 22: api.bookkeeping.v1.BookkeepingService.AddLoanPrepayment:input_type -> api.bookkeeping.v1.AddLoanPrepaymentRequest
-	23, // 23: api.bookkeeping.v1.BookkeepingService.LoanSummaryList:input_type -> api.bookkeeping.v1.LoanSummaryListRequest
-	26, // 24: api.bookkeeping.v1.BookkeepingService.LoanDetail:input_type -> api.bookkeeping.v1.LoanDetailRequest
-	3,  // 25: api.bookkeeping.v1.BookkeepingService.AssetList:output_type -> api.bookkeeping.v1.AssetListReply
-	6,  // 26: api.bookkeeping.v1.BookkeepingService.UpsertLedgerEntry:output_type -> api.bookkeeping.v1.UpsertLedgerEntryReply
-	8,  // 27: api.bookkeeping.v1.BookkeepingService.LedgerList:output_type -> api.bookkeeping.v1.LedgerListReply
-	11, // 28: api.bookkeeping.v1.BookkeepingService.LedgerStats:output_type -> api.bookkeeping.v1.LedgerStatsReply
-	16, // 29: api.bookkeeping.v1.BookkeepingService.CreateMortgageLoan:output_type -> api.bookkeeping.v1.CreateMortgageLoanReply
-	18, // 30: api.bookkeeping.v1.BookkeepingService.StartLoanRepayment:output_type -> api.bookkeeping.v1.StartLoanRepaymentReply
-	20, // 31: api.bookkeeping.v1.BookkeepingService.AdjustLoanRate:output_type -> api.bookkeeping.v1.AdjustLoanRateReply
-	22, // 32: api.bookkeeping.v1.BookkeepingService.AddLoanPrepayment:output_type -> api.bookkeeping.v1.AddLoanPrepaymentReply
-	24, // 33: api.bookkeeping.v1.BookkeepingService.LoanSummaryList:output_type -> api.bookkeeping.v1.LoanSummaryListReply
-	27, // 34: api.bookkeeping.v1.BookkeepingService.LoanDetail:output_type -> api.bookkeeping.v1.LoanDetailReply
-	25, // [25:35] is the sub-list for method output_type
-	15, // [15:25] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	25, // 1: api.bookkeeping.v1.AssetItem.loans:type_name -> api.bookkeeping.v1.LoanBalanceItem
+	7,  // 2: api.bookkeeping.v1.AssetDetailListReply.items:type_name -> api.bookkeeping.v1.AssetDetailItem
+	7,  // 3: api.bookkeeping.v1.CreateAssetDetailReply.item:type_name -> api.bookkeeping.v1.AssetDetailItem
+	7,  // 4: api.bookkeeping.v1.UpdateAssetDetailReply.item:type_name -> api.bookkeeping.v1.AssetDetailItem
+	4,  // 5: api.bookkeeping.v1.UpdateAssetRemarkReply.item:type_name -> api.bookkeeping.v1.AssetItem
+	20, // 6: api.bookkeeping.v1.LedgerListReply.items:type_name -> api.bookkeeping.v1.LedgerItem
+	23, // 7: api.bookkeeping.v1.LedgerStatsReply.trend_points:type_name -> api.bookkeeping.v1.LedgerTrendPoint
+	24, // 8: api.bookkeeping.v1.LedgerStatsReply.expense_rankings:type_name -> api.bookkeeping.v1.LedgerExpenseRankItem
+	0,  // 9: api.bookkeeping.v1.LoanBalanceItem.loan_type:type_name -> api.bookkeeping.v1.LoanType
+	1,  // 10: api.bookkeeping.v1.AddLoanPrepaymentRequest.mode:type_name -> api.bookkeeping.v1.PrepaymentMode
+	1,  // 11: api.bookkeeping.v1.AddLoanPrepaymentReply.mode:type_name -> api.bookkeeping.v1.PrepaymentMode
+	36, // 12: api.bookkeeping.v1.LoanSummaryListReply.items:type_name -> api.bookkeeping.v1.LoanSummaryItem
+	0,  // 13: api.bookkeeping.v1.LoanSummaryItem.loan_type:type_name -> api.bookkeeping.v1.LoanType
+	36, // 14: api.bookkeeping.v1.LoanDetailReply.summary:type_name -> api.bookkeeping.v1.LoanSummaryItem
+	39, // 15: api.bookkeeping.v1.LoanDetailReply.plans:type_name -> api.bookkeeping.v1.LoanRepaymentPlanItem
+	40, // 16: api.bookkeeping.v1.LoanDetailReply.rate_adjustments:type_name -> api.bookkeeping.v1.LoanRateAdjustmentHistoryItem
+	41, // 17: api.bookkeeping.v1.LoanDetailReply.prepayments:type_name -> api.bookkeeping.v1.LoanPrepaymentHistoryItem
+	1,  // 18: api.bookkeeping.v1.LoanPrepaymentHistoryItem.mode:type_name -> api.bookkeeping.v1.PrepaymentMode
+	2,  // 19: api.bookkeeping.v1.BookkeepingService.AssetList:input_type -> api.bookkeeping.v1.AssetListRequest
+	5,  // 20: api.bookkeeping.v1.BookkeepingService.AssetDetailList:input_type -> api.bookkeeping.v1.AssetDetailListRequest
+	8,  // 21: api.bookkeeping.v1.BookkeepingService.CreateAssetDetail:input_type -> api.bookkeeping.v1.CreateAssetDetailRequest
+	10, // 22: api.bookkeeping.v1.BookkeepingService.UpdateAssetDetail:input_type -> api.bookkeeping.v1.UpdateAssetDetailRequest
+	12, // 23: api.bookkeeping.v1.BookkeepingService.DeleteAssetDetail:input_type -> api.bookkeeping.v1.DeleteAssetDetailRequest
+	14, // 24: api.bookkeeping.v1.BookkeepingService.UpdateAssetRemark:input_type -> api.bookkeeping.v1.UpdateAssetRemarkRequest
+	16, // 25: api.bookkeeping.v1.BookkeepingService.UpsertLedgerEntry:input_type -> api.bookkeeping.v1.UpsertLedgerEntryRequest
+	18, // 26: api.bookkeeping.v1.BookkeepingService.LedgerList:input_type -> api.bookkeeping.v1.LedgerListRequest
+	21, // 27: api.bookkeeping.v1.BookkeepingService.LedgerStats:input_type -> api.bookkeeping.v1.LedgerStatsRequest
+	26, // 28: api.bookkeeping.v1.BookkeepingService.CreateMortgageLoan:input_type -> api.bookkeeping.v1.CreateMortgageLoanRequest
+	28, // 29: api.bookkeeping.v1.BookkeepingService.StartLoanRepayment:input_type -> api.bookkeeping.v1.StartLoanRepaymentRequest
+	30, // 30: api.bookkeeping.v1.BookkeepingService.AdjustLoanRate:input_type -> api.bookkeeping.v1.AdjustLoanRateRequest
+	32, // 31: api.bookkeeping.v1.BookkeepingService.AddLoanPrepayment:input_type -> api.bookkeeping.v1.AddLoanPrepaymentRequest
+	34, // 32: api.bookkeeping.v1.BookkeepingService.LoanSummaryList:input_type -> api.bookkeeping.v1.LoanSummaryListRequest
+	37, // 33: api.bookkeeping.v1.BookkeepingService.LoanDetail:input_type -> api.bookkeeping.v1.LoanDetailRequest
+	3,  // 34: api.bookkeeping.v1.BookkeepingService.AssetList:output_type -> api.bookkeeping.v1.AssetListReply
+	6,  // 35: api.bookkeeping.v1.BookkeepingService.AssetDetailList:output_type -> api.bookkeeping.v1.AssetDetailListReply
+	9,  // 36: api.bookkeeping.v1.BookkeepingService.CreateAssetDetail:output_type -> api.bookkeeping.v1.CreateAssetDetailReply
+	11, // 37: api.bookkeeping.v1.BookkeepingService.UpdateAssetDetail:output_type -> api.bookkeeping.v1.UpdateAssetDetailReply
+	13, // 38: api.bookkeeping.v1.BookkeepingService.DeleteAssetDetail:output_type -> api.bookkeeping.v1.DeleteAssetDetailReply
+	15, // 39: api.bookkeeping.v1.BookkeepingService.UpdateAssetRemark:output_type -> api.bookkeeping.v1.UpdateAssetRemarkReply
+	17, // 40: api.bookkeeping.v1.BookkeepingService.UpsertLedgerEntry:output_type -> api.bookkeeping.v1.UpsertLedgerEntryReply
+	19, // 41: api.bookkeeping.v1.BookkeepingService.LedgerList:output_type -> api.bookkeeping.v1.LedgerListReply
+	22, // 42: api.bookkeeping.v1.BookkeepingService.LedgerStats:output_type -> api.bookkeeping.v1.LedgerStatsReply
+	27, // 43: api.bookkeeping.v1.BookkeepingService.CreateMortgageLoan:output_type -> api.bookkeeping.v1.CreateMortgageLoanReply
+	29, // 44: api.bookkeeping.v1.BookkeepingService.StartLoanRepayment:output_type -> api.bookkeeping.v1.StartLoanRepaymentReply
+	31, // 45: api.bookkeeping.v1.BookkeepingService.AdjustLoanRate:output_type -> api.bookkeeping.v1.AdjustLoanRateReply
+	33, // 46: api.bookkeeping.v1.BookkeepingService.AddLoanPrepayment:output_type -> api.bookkeeping.v1.AddLoanPrepaymentReply
+	35, // 47: api.bookkeeping.v1.BookkeepingService.LoanSummaryList:output_type -> api.bookkeeping.v1.LoanSummaryListReply
+	38, // 48: api.bookkeeping.v1.BookkeepingService.LoanDetail:output_type -> api.bookkeeping.v1.LoanDetailReply
+	34, // [34:49] is the sub-list for method output_type
+	19, // [19:34] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_api_bookkeeping_v1_bookkeeping_proto_init() }
@@ -2435,7 +3325,7 @@ func file_api_bookkeeping_v1_bookkeeping_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_bookkeeping_v1_bookkeeping_proto_rawDesc), len(file_api_bookkeeping_v1_bookkeeping_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   29,
+			NumMessages:   40,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

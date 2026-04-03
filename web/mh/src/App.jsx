@@ -267,6 +267,14 @@ function goHome() {
 
 function noop() {}
 
+function handleActionKeyDown(event, action) {
+  if (event.key !== "Enter" && event.key !== " ") {
+    return;
+  }
+  event.preventDefault();
+  action();
+}
+
 function openBookRoute(routeKey, item) {
   saveScrollPosition(routeKey);
   setPendingListRestore({
@@ -439,11 +447,13 @@ function ListPage({ route }) {
         {!loading && !err && mode === "latest" ? (
           <section className="latest-stack" aria-label="最新漫画">
             {items.map((item) => (
-              <button
+              <div
                 key={`${getOrgID(item)}-${item.cid || 0}`}
-                type="button"
                 className="latest-card"
-                onClick={() => openLatestChapterRoute(routeKey, item)}
+                role="button"
+                tabIndex={0}
+                onClick={() => openBookRoute(routeKey, item)}
+                onKeyDown={(event) => handleActionKeyDown(event, () => openBookRoute(routeKey, item))}
               >
                 <div className="latest-cover-wrap">
                   <span className="badge-spot">最新</span>
@@ -456,9 +466,39 @@ function ListPage({ route }) {
                     <span>{getLatestChapter(item)}</span>
                   </div>
                   <p>{`本次更新：${getLatestChapter(item)}`}</p>
-                  <span className="cta-button" aria-hidden="true">追漫</span>
+                  <button
+                    type="button"
+                    className="cta-button arco-btn arco-btn-primary arco-btn-size-default arco-btn-shape-square"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openLatestChapterRoute(routeKey, item);
+                    }}
+                    onKeyDown={(event) => event.stopPropagation()}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="12"
+                      height="12"
+                      fill="none"
+                      viewBox="0 0 12 12"
+                      className="cta-icon"
+                      aria-hidden="true"
+                    >
+                      <g stroke="#fff" strokeWidth="1.294" clipPath="url(#mh-cta-icon)">
+                        <path strokeLinejoin="round" d="M1.5 3.75h9L10 10.5H2z" clipRule="evenodd" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4.75V1.5h4v3.25" />
+                        <path strokeLinecap="round" d="M4 8.5h4" />
+                      </g>
+                      <defs>
+                        <clipPath id="mh-cta-icon">
+                          <path fill="#fff" d="M0 0h12v12H0z" />
+                        </clipPath>
+                      </defs>
+                    </svg>
+                    <span>追漫</span>
+                  </button>
                 </div>
-              </button>
+              </div>
             ))}
           </section>
         ) : null}
@@ -536,6 +576,9 @@ function BookPage({ route }) {
               <img src={getCoverURL(data.book)} alt={data.book.title} className="book-hero-image" />
               <button type="button" className="hero-back-button" onClick={() => goBack(readLastListRoute().replace(/^\?/, ""))} aria-label="返回列表">
                 <span className="hero-back-icon" aria-hidden="true" />
+              </button>
+              <button type="button" className="hero-home-button" onClick={goHome} aria-label="返回首页">
+                <span className="home-icon" aria-hidden="true" />
               </button>
             </div>
             <div className="book-title-block">
@@ -678,9 +721,14 @@ function ChapterPage({ route }) {
             >
               上一页
             </button>
-            <span className="reader-page-indicator">
+            <button
+              type="button"
+              className="reader-page-indicator"
+              onClick={() => navigate(`view=book&org_id=${orgID}&title=${encodeURIComponent(fallbackTitle)}`)}
+              aria-label="返回漫画目录"
+            >
               {data.page} / {totalPages}
-            </span>
+            </button>
             <button
               type="button"
               className="reader-nav-button"

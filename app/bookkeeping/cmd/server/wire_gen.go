@@ -34,9 +34,11 @@ func initApp(pcID kratosx.ServiceID, root context.Context, c *conf.Bootstrap, wg
 		return nil, nil, err
 	}
 	assetRepo := data.NewAssetRepo(dataData, logger)
+	assetDetailRepo := data.NewAssetDetailRepo(dataData, logger)
 	loanRepo := data.NewLoanRepo(dataData, logger)
+	consumerLoanRepo := data.NewConsumerLoanRepo(dataData, logger)
 	ledgerRepo := data.NewLedgerRepo(dataData, logger)
-	bookkeepingService := service.NewBookkeepingService(assetRepo, loanRepo, ledgerRepo, logger)
+	bookkeepingService := service.NewBookkeepingService(assetRepo, assetDetailRepo, loanRepo, consumerLoanRepo, ledgerRepo, logger)
 	grpcServer := server.NewGRPCServer(c, healthService, bookkeepingService, logger)
 	httpServer := server.NewHTTPServer(c, healthService, bookkeepingService, logger)
 	nacosxConf := app_init.NewNacosConf(c)

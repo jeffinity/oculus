@@ -3,6 +3,8 @@ import { Button, Card, DatePicker, Empty, Form, InputNumber, Progress, Select, S
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 
+import MobileHeader from "../components/MobileHeader";
+
 const MONEY_FORMAT = new Intl.NumberFormat("zh-CN", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2
@@ -55,6 +57,26 @@ function calcRemainingPercent(initialPrincipal, remainingPrincipal) {
   if (pct < 0) return 0;
   if (pct > 100) return 100;
   return pct;
+}
+
+function formatFriendlyMonths(totalMonths) {
+  const months = Number(totalMonths);
+  if (!Number.isFinite(months) || months <= 0) return "0个月";
+  const years = Math.floor(months / 12);
+  const restMonths = months % 12;
+  if (years > 0 && restMonths > 0) return `${years}年${restMonths}个月`;
+  if (years > 0) return `${years}年`;
+  return `${restMonths}个月`;
+}
+
+function renderPayoffHint(summary) {
+  if (!summary?.estimatedPayoffDate) return null;
+  const termText = formatFriendlyMonths(parseNumber(summary.termMonths));
+  const shortenedText = formatFriendlyMonths(parseNumber(summary.shortenedMonths));
+  if (parseNumber(summary.shortenedMonths) > 0) {
+    return `预计在 ${summary.estimatedPayoffDate} 可以完成全部贷款偿还，比${termText}提早了 ${shortenedText}。`;
+  }
+  return `预计在 ${summary.estimatedPayoffDate} 可以完成全部贷款偿还，与${termText}的合同贷款年限一致。`;
 }
 
 async function requestLoanDetail(loanId, months = 24) {
@@ -279,15 +301,12 @@ export default function LoanDetailPage() {
   }
 
   return (
-    <div className="page-wrap">
+    <div className="mobile-page-wrap">
       {contextHolder}
+      <MobileHeader title="贷款详情" onBack={toBack} />
+      <div className="mobile-page-content">
+        <div className="page-wrap">
       <Card className="main-card" styles={{ body: { padding: 24 } }}>
-        <div className="top-row">
-          <Typography.Title level={2} className="page-title">
-            贷款详情
-          </Typography.Title>
-          <Button onClick={toBack}>返回资产总览</Button>
-        </div>
         {pageState || (
           <Space direction="vertical" size={16} style={{ width: "100%" }}>
             <div className="loan-detail-summary">
@@ -328,6 +347,9 @@ export default function LoanDetailPage() {
                   status="active"
                   format={(p) => `待还本金占比 ${p}%`}
                 />
+                <Typography.Text type="secondary" style={{ display: "block", marginTop: 8 }}>
+                  {renderPayoffHint(summary)}
+                </Typography.Text>
               </div>
             </div>
 
@@ -556,6 +578,8 @@ export default function LoanDetailPage() {
           </Space>
         )}
       </Card>
+        </div>
+      </div>
     </div>
   );
 }

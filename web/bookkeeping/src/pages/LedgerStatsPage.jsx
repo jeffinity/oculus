@@ -1,7 +1,9 @@
 /* eslint-disable complexity, max-lines-per-function */
 import { Line } from "@ant-design/charts";
-import { Button, Card, Empty, Space, Spin, Tabs, Typography } from "antd";
+import { Card, Empty, Space, Spin, Tabs, Typography } from "antd";
 import { useEffect, useMemo, useState } from "react";
+
+import MobileHeader from "../components/MobileHeader";
 
 const MONEY_FORMAT = new Intl.NumberFormat("zh-CN", {
   minimumFractionDigits: 2,
@@ -277,14 +279,11 @@ export default function LedgerStatsPage() {
   const statsContent = renderStatsState(loading, chartData, chartConfig, stats);
 
   return (
-    <div className="page-wrap">
+    <div className="mobile-page-wrap">
+      <MobileHeader title="账单统计" onBack={() => toBillList(stats?.ym || selectedYM || "")} />
+      <div className="mobile-page-content">
+        <div className="page-wrap">
       <Card className="main-card" styles={{ body: { padding: 24 } }}>
-        <div className="top-row">
-          <Typography.Title level={2} className="page-title">
-            账单统计
-          </Typography.Title>
-          <Button onClick={() => toBillList(stats?.ym || selectedYM || "")}>返回账单清单</Button>
-        </div>
 
         <div className="ledger-stats-filter-row">
           <Tabs
@@ -316,6 +315,8 @@ export default function LedgerStatsPage() {
 
         {statsContent}
       </Card>
+        </div>
+      </div>
     </div>
   );
 }

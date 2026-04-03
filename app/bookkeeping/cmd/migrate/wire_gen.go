@@ -13,6 +13,10 @@ import (
 	"github.com/jeffinity/oculus/app/bookkeeping/internal/data"
 )
 
+import (
+	_ "github.com/jackc/pgx/v5/stdlib"
+)
+
 // Injectors from wire.go:
 
 // initMigrator init db migrator.

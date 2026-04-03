@@ -25,7 +25,9 @@ var ProviderSet = wire.NewSet(
 
 var AssetProviderSet = wire.NewSet(
 	NewAssetRepo,
+	NewAssetDetailRepo,
 	NewLoanRepo,
+	NewConsumerLoanRepo,
 	NewLedgerRepo,
 )
 
@@ -42,8 +44,10 @@ type Data struct {
 func NewAllMigrator(pg *gorm.DB) *migratex.Migrator {
 	return migratex.NewAllMigrator(pg, []any{
 		&Asset{},
+		&AssetDetail{},
 		&Ledger{},
 		&Loan{},
+		&ConsumerLoan{},
 		&LoanRateAdjustment{},
 		&LoanPrepayment{},
 	})

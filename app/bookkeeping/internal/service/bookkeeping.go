@@ -21,10 +21,12 @@ import (
 type BookkeepingService struct {
 	bookkeepingv1.UnimplementedBookkeepingServiceServer
 
-	assetRepo  *data.AssetRepo
-	loanRepo   *data.LoanRepo
-	ledgerRepo *data.LedgerRepo
-	log        *log.Helper
+	assetRepo        *data.AssetRepo
+	assetDetailRepo  *data.AssetDetailRepo
+	loanRepo         *data.LoanRepo
+	consumerLoanRepo *data.ConsumerLoanRepo
+	ledgerRepo       *data.LedgerRepo
+	log              *log.Helper
 }
 
 type loanContext struct {
@@ -32,6 +34,12 @@ type loanContext struct {
 	adjustmentsByLoan map[string][]data.LoanRateAdjustment
 	prepaymentsByLoan map[string][]data.LoanPrepayment
 	computations      map[string]*loanComputation
+}
+
+type consumerLoanPayload struct {
+	totalAmount float64
+	startYM     string
+	termMonths  int32
 }
 
 var supportedLedgerCategories = map[string]struct{}{
@@ -42,12 +50,38 @@ var supportedLedgerCategories = map[string]struct{}{
 	"快递": {}, "设置": {},
 }
 
-func NewBookkeepingService(assetRepo *data.AssetRepo, loanRepo *data.LoanRepo, ledgerRepo *data.LedgerRepo, logger log.Logger) *BookkeepingService {
+var supportedAssetTypes = map[string]struct{}{
+	"asset":     {},
+	"liability": {},
+}
+
+var supportedAssetSubTypes = map[string]struct{}{
+	"现金":   {},
+	"储蓄卡":  {},
+	"虚拟账户": {},
+	"债权":   {},
+	"信用卡":  {},
+	"欠款":   {},
+	"消费贷款": {},
+}
+
+var assetDetailStartYM = ymValue{year: 2026, month: 4}
+
+func NewBookkeepingService(
+	assetRepo *data.AssetRepo,
+	assetDetailRepo *data.AssetDetailRepo,
+	loanRepo *data.LoanRepo,
+	consumerLoanRepo *data.ConsumerLoanRepo,
+	ledgerRepo *data.LedgerRepo,
+	logger log.Logger,
+) *BookkeepingService {
 	return &BookkeepingService{
-		assetRepo:  assetRepo,
-		loanRepo:   loanRepo,
-		ledgerRepo: ledgerRepo,
-		log:        log.NewHelper(log.With(logger, "module", "bookkeeping/BookkeepingService")),
+		assetRepo:        assetRepo,
+		assetDetailRepo:  assetDetailRepo,
+		loanRepo:         loanRepo,
+		consumerLoanRepo: consumerLoanRepo,
+		ledgerRepo:       ledgerRepo,
+		log:              log.NewHelper(log.With(logger, "module", "bookkeeping/BookkeepingService")),
 	}
 }
 
@@ -184,6 +218,428 @@ func (s *BookkeepingService) AssetList(ctx context.Context, req *bookkeepingv1.A
 		})
 	}
 	return reply, nil
+}
+
+func (s *BookkeepingService) AssetDetailList(ctx context.Context, req *bookkeepingv1.AssetDetailListRequest) (*bookkeepingv1.AssetDetailListReply, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request is required")
+	}
+	ym := strings.TrimSpace(req.GetYm())
+	targetYM, err := parseYM(ym)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "ym must be YYYY.MM")
+	}
+	if targetYM.Before(assetDetailStartYM) {
+		return &bookkeepingv1.AssetDetailListReply{Items: []*bookkeepingv1.AssetDetailItem{}}, nil
+	}
+
+	items, err := s.assetDetailRepo.ListByYM(ctx, ym)
+	if err != nil {
+		s.log.Errorf("query asset details failed: ym=%s err=%v", ym, err)
+		return nil, status.Error(codes.Internal, "query asset details failed")
+	}
+	if len(items) == 0 {
+		currentYM := ymFromDate(time.Now())
+		if targetYM.String() == currentYM.String() {
+			prevYM, findErr := s.assetDetailRepo.FindLatestYMBefore(ctx, ym)
+			if findErr != nil {
+				s.log.Errorf("query previous asset detail month failed: ym=%s err=%v", ym, findErr)
+				return nil, status.Error(codes.Internal, "query asset details failed")
+			}
+			if prevYM != "" {
+				prevItems, listErr := s.assetDetailRepo.ListByYM(ctx, prevYM)
+				if listErr != nil {
+					s.log.Errorf("query previous asset details failed: ym=%s prev_ym=%s err=%v", ym, prevYM, listErr)
+					return nil, status.Error(codes.Internal, "query asset details failed")
+				}
+				now := time.Now()
+				for i := range prevItems {
+					if prevItems[i].SubType == "消费贷款" {
+						continue
+					}
+					createErr := s.assetDetailRepo.Create(ctx, &data.AssetDetail{
+						DetailID:   ulid.Make().String(),
+						YM:         ym,
+						AssetType:  prevItems[i].AssetType,
+						SubType:    prevItems[i].SubType,
+						PresetCode: prevItems[i].PresetCode,
+						AssetName:  prevItems[i].AssetName,
+						Remark:     prevItems[i].Remark,
+						Amount:     prevItems[i].Amount,
+						CreatedAt:  now,
+						UpdatedAt:  now,
+					})
+					if createErr != nil {
+						s.log.Errorf("copy asset details to current month failed: ym=%s prev_ym=%s err=%v", ym, prevYM, createErr)
+						return nil, status.Error(codes.Internal, "query asset details failed")
+					}
+				}
+				items, err = s.assetDetailRepo.ListByYM(ctx, ym)
+				if err != nil {
+					s.log.Errorf("query copied asset details failed: ym=%s err=%v", ym, err)
+					return nil, status.Error(codes.Internal, "query asset details failed")
+				}
+			}
+		}
+	}
+	if err = s.syncAssetSummaryByYM(ctx, ym); err != nil {
+		s.log.Errorf("sync asset summary failed: ym=%s err=%v", ym, err)
+		return nil, status.Error(codes.Internal, "sync asset summary failed")
+	}
+
+	consumerByDetailID, buildErr := s.loadConsumerLoanMapForYM(ctx, targetYM)
+	if buildErr != nil {
+		s.log.Errorf("load consumer loans failed: ym=%s err=%v", ym, buildErr)
+		return nil, status.Error(codes.Internal, "query asset details failed")
+	}
+
+	reply := &bookkeepingv1.AssetDetailListReply{
+		Items: make([]*bookkeepingv1.AssetDetailItem, 0, len(items)+len(consumerByDetailID)),
+	}
+	for i := range items {
+		if items[i].SubType == "消费贷款" {
+			if payload, ok := consumerByDetailID[items[i].DetailID]; ok {
+				reply.Items = append(reply.Items, toProtoAssetDetailItem(items[i], &consumerLoanPayload{
+					totalAmount: payload.totalAmount,
+					startYM:     payload.startYM,
+					termMonths:  payload.termMonths,
+				}))
+				delete(consumerByDetailID, items[i].DetailID)
+			}
+			continue
+		}
+		reply.Items = append(reply.Items, toProtoAssetDetailItem(items[i], nil))
+	}
+	for _, payload := range consumerByDetailID {
+		reply.Items = append(reply.Items, toProtoAssetDetailItem(data.AssetDetail{
+			DetailID:   payload.DetailID,
+			YM:         ym,
+			AssetType:  "liability",
+			SubType:    "消费贷款",
+			PresetCode: payload.PresetCode,
+			AssetName:  payload.AssetName,
+			Remark:     payload.Remark,
+			Amount:     formatMoney(payload.remainingAmount),
+			CreatedAt:  payload.CreatedAt,
+			UpdatedAt:  payload.UpdatedAt,
+		}, &consumerLoanPayload{
+			totalAmount: payload.totalAmount,
+			startYM:     payload.startYM,
+			termMonths:  payload.termMonths,
+		}))
+	}
+	sort.Slice(reply.Items, func(i, j int) bool {
+		if reply.Items[i].AssetType != reply.Items[j].AssetType {
+			return reply.Items[i].AssetType < reply.Items[j].AssetType
+		}
+		if reply.Items[i].SubType != reply.Items[j].SubType {
+			return reply.Items[i].SubType < reply.Items[j].SubType
+		}
+		if reply.Items[i].DetailId != reply.Items[j].DetailId {
+			return reply.Items[i].DetailId < reply.Items[j].DetailId
+		}
+		return reply.Items[i].AssetName < reply.Items[j].AssetName
+	})
+	return reply, nil
+}
+
+func (s *BookkeepingService) CreateAssetDetail(ctx context.Context, req *bookkeepingv1.CreateAssetDetailRequest) (*bookkeepingv1.CreateAssetDetailReply, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request is required")
+	}
+	rawAmount := req.GetAmount()
+	if strings.TrimSpace(req.GetSubType()) == "消费贷款" && strings.TrimSpace(rawAmount) == "" {
+		rawAmount = req.GetConsumerLoanTotalAmount()
+	}
+	ym, assetType, subType, presetCode, assetName, remark, amount, err := normalizeAssetDetailPayload(
+		req.GetYm(),
+		req.GetAssetType(),
+		req.GetSubType(),
+		req.GetPresetCode(),
+		req.GetAssetName(),
+		req.GetRemark(),
+		rawAmount,
+	)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	var consumerPayload *consumerLoanPayload
+	if subType == "消费贷款" {
+		consumerPayload, err = normalizeConsumerLoanPayload(req.GetConsumerLoanTotalAmount(), req.GetConsumerLoanStartYm(), req.GetConsumerLoanTermMonths())
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
+		ym = consumerPayload.startYM
+		assetType = "liability"
+		amount = consumerPayload.totalAmount
+	}
+
+	now := time.Now()
+	item := data.AssetDetail{
+		DetailID:   ulid.Make().String(),
+		YM:         ym,
+		AssetType:  assetType,
+		SubType:    subType,
+		PresetCode: presetCode,
+		AssetName:  assetName,
+		Remark:     remark,
+		Amount:     formatMoney(amount),
+		CreatedAt:  now,
+		UpdatedAt:  now,
+	}
+	if err = s.assetDetailRepo.Create(ctx, &item); err != nil {
+		s.log.Errorf("create asset detail failed: ym=%s sub_type=%s err=%v", ym, subType, err)
+		return nil, status.Error(codes.Internal, "create asset detail failed")
+	}
+	if consumerPayload != nil {
+		if err = s.consumerLoanRepo.Upsert(ctx, &data.ConsumerLoan{
+			DetailID:    item.DetailID,
+			TotalAmount: formatMoney(consumerPayload.totalAmount),
+			StartYM:     consumerPayload.startYM,
+			TermMonths:  consumerPayload.termMonths,
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		}); err != nil {
+			s.log.Errorf("create consumer loan failed: detail_id=%s err=%v", item.DetailID, err)
+			return nil, status.Error(codes.Internal, "create asset detail failed")
+		}
+	}
+	if err = s.syncAssetSummaryByYM(ctx, ym); err != nil {
+		s.log.Errorf("sync asset summary after create failed: ym=%s err=%v", ym, err)
+		return nil, status.Error(codes.Internal, "sync asset summary failed")
+	}
+	if consumerPayload != nil {
+		if err = s.resyncAssetSummaryFromYM(ctx, ym); err != nil {
+			s.log.Errorf("resync consumer loan summary failed: start_ym=%s err=%v", ym, err)
+			return nil, status.Error(codes.Internal, "sync asset summary failed")
+		}
+	}
+	return &bookkeepingv1.CreateAssetDetailReply{
+		Item: toProtoAssetDetailItem(item, consumerPayload),
+	}, nil
+}
+
+func (s *BookkeepingService) UpdateAssetDetail(ctx context.Context, req *bookkeepingv1.UpdateAssetDetailRequest) (*bookkeepingv1.UpdateAssetDetailReply, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request is required")
+	}
+	detailID := strings.TrimSpace(req.GetDetailId())
+	if detailID == "" {
+		return nil, status.Error(codes.InvalidArgument, "detail id is required")
+	}
+	existing, err := s.assetDetailRepo.FindByID(ctx, detailID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, status.Error(codes.NotFound, "asset detail not found")
+		}
+		s.log.Errorf("query asset detail failed: detail_id=%s err=%v", detailID, err)
+		return nil, status.Error(codes.Internal, "query asset detail failed")
+	}
+
+	rawYM := strings.TrimSpace(req.GetYm())
+	if rawYM == "" {
+		rawYM = existing.YM
+	}
+	rawAssetType := strings.TrimSpace(req.GetAssetType())
+	if rawAssetType == "" {
+		rawAssetType = existing.AssetType
+	}
+	rawSubType := strings.TrimSpace(req.GetSubType())
+	if rawSubType == "" {
+		rawSubType = existing.SubType
+	}
+	rawPresetCode := strings.TrimSpace(req.GetPresetCode())
+	if rawPresetCode == "" {
+		rawPresetCode = existing.PresetCode
+	}
+	rawAmount := strings.TrimSpace(req.GetAmount())
+	if rawSubType == "消费贷款" && rawAmount == "" {
+		rawAmount = strings.TrimSpace(req.GetConsumerLoanTotalAmount())
+	}
+	if rawAmount == "" {
+		rawAmount = existing.Amount
+	}
+	ym, assetType, subType, presetCode, assetName, remark, amount, err := normalizeAssetDetailPayload(
+		rawYM,
+		rawAssetType,
+		rawSubType,
+		rawPresetCode,
+		req.GetAssetName(),
+		req.GetRemark(),
+		rawAmount,
+	)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	existingConsumer, _ := s.consumerLoanRepo.FindByDetailID(ctx, detailID)
+	var consumerPayload *consumerLoanPayload
+	if subType == "消费贷款" {
+		consumerPayload, err = normalizeConsumerLoanPayload(req.GetConsumerLoanTotalAmount(), req.GetConsumerLoanStartYm(), req.GetConsumerLoanTermMonths())
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
+		ym = consumerPayload.startYM
+		assetType = "liability"
+		amount = consumerPayload.totalAmount
+	}
+
+	item := data.AssetDetail{
+		DetailID:   existing.DetailID,
+		YM:         ym,
+		AssetType:  assetType,
+		SubType:    subType,
+		PresetCode: presetCode,
+		AssetName:  assetName,
+		Remark:     remark,
+		Amount:     formatMoney(amount),
+		CreatedAt:  existing.CreatedAt,
+		UpdatedAt:  time.Now(),
+	}
+	if err = s.assetDetailRepo.Update(ctx, &item); err != nil {
+		s.log.Errorf("update asset detail failed: detail_id=%s err=%v", detailID, err)
+		return nil, status.Error(codes.Internal, "update asset detail failed")
+	}
+	if consumerPayload != nil {
+		if err = s.consumerLoanRepo.Upsert(ctx, &data.ConsumerLoan{
+			DetailID:    detailID,
+			TotalAmount: formatMoney(consumerPayload.totalAmount),
+			StartYM:     consumerPayload.startYM,
+			TermMonths:  consumerPayload.termMonths,
+			CreatedAt:   existing.CreatedAt,
+			UpdatedAt:   item.UpdatedAt,
+		}); err != nil {
+			s.log.Errorf("upsert consumer loan failed: detail_id=%s err=%v", detailID, err)
+			return nil, status.Error(codes.Internal, "update asset detail failed")
+		}
+	} else if existingConsumer != nil {
+		if err = s.consumerLoanRepo.DeleteByDetailID(ctx, detailID); err != nil {
+			s.log.Errorf("delete consumer loan failed: detail_id=%s err=%v", detailID, err)
+			return nil, status.Error(codes.Internal, "update asset detail failed")
+		}
+	}
+	if err = s.syncAssetSummaryByYM(ctx, existing.YM); err != nil {
+		s.log.Errorf("sync asset summary for old month failed: ym=%s detail_id=%s err=%v", existing.YM, detailID, err)
+		return nil, status.Error(codes.Internal, "sync asset summary failed")
+	}
+	if ym != existing.YM {
+		if err = s.syncAssetSummaryByYM(ctx, ym); err != nil {
+			s.log.Errorf("sync asset summary for new month failed: ym=%s detail_id=%s err=%v", ym, detailID, err)
+			return nil, status.Error(codes.Internal, "sync asset summary failed")
+		}
+	}
+	if consumerPayload != nil || existingConsumer != nil {
+		minYM := existing.YM
+		if consumerPayload != nil && consumerPayload.startYM < minYM {
+			minYM = consumerPayload.startYM
+		}
+		if existingConsumer != nil && existingConsumer.StartYM < minYM {
+			minYM = existingConsumer.StartYM
+		}
+		if err = s.resyncAssetSummaryFromYM(ctx, minYM); err != nil {
+			s.log.Errorf("resync consumer loan summary failed: detail_id=%s min_ym=%s err=%v", detailID, minYM, err)
+			return nil, status.Error(codes.Internal, "sync asset summary failed")
+		}
+	}
+	return &bookkeepingv1.UpdateAssetDetailReply{
+		Item: toProtoAssetDetailItem(item, consumerPayload),
+	}, nil
+}
+
+func (s *BookkeepingService) DeleteAssetDetail(ctx context.Context, req *bookkeepingv1.DeleteAssetDetailRequest) (*bookkeepingv1.DeleteAssetDetailReply, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request is required")
+	}
+	detailID := strings.TrimSpace(req.GetDetailId())
+	if detailID == "" {
+		return nil, status.Error(codes.InvalidArgument, "detail id is required")
+	}
+	existing, err := s.assetDetailRepo.FindByID(ctx, detailID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, status.Error(codes.NotFound, "asset detail not found")
+		}
+		s.log.Errorf("query asset detail failed: detail_id=%s err=%v", detailID, err)
+		return nil, status.Error(codes.Internal, "query asset detail failed")
+	}
+	existingConsumer, _ := s.consumerLoanRepo.FindByDetailID(ctx, detailID)
+
+	if err = s.assetDetailRepo.DeleteByID(ctx, detailID); err != nil {
+		s.log.Errorf("delete asset detail failed: detail_id=%s err=%v", detailID, err)
+		return nil, status.Error(codes.Internal, "delete asset detail failed")
+	}
+	if existingConsumer != nil {
+		if err = s.consumerLoanRepo.DeleteByDetailID(ctx, detailID); err != nil {
+			s.log.Errorf("delete consumer loan failed: detail_id=%s err=%v", detailID, err)
+			return nil, status.Error(codes.Internal, "delete asset detail failed")
+		}
+	}
+	if err = s.syncAssetSummaryByYM(ctx, existing.YM); err != nil {
+		s.log.Errorf("sync asset summary after delete failed: ym=%s detail_id=%s err=%v", existing.YM, detailID, err)
+		return nil, status.Error(codes.Internal, "sync asset summary failed")
+	}
+	if existingConsumer != nil {
+		if err = s.resyncAssetSummaryFromYM(ctx, existingConsumer.StartYM); err != nil {
+			s.log.Errorf("resync consumer loan summary failed after delete: detail_id=%s start_ym=%s err=%v", detailID, existingConsumer.StartYM, err)
+			return nil, status.Error(codes.Internal, "sync asset summary failed")
+		}
+	}
+	return &bookkeepingv1.DeleteAssetDetailReply{Success: true}, nil
+}
+
+func (s *BookkeepingService) UpdateAssetRemark(ctx context.Context, req *bookkeepingv1.UpdateAssetRemarkRequest) (*bookkeepingv1.UpdateAssetRemarkReply, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request is required")
+	}
+	ym := strings.TrimSpace(req.GetYm())
+	if _, err := parseYM(ym); err != nil {
+		return nil, status.Error(codes.InvalidArgument, "ym must be YYYY.MM")
+	}
+	remark := strings.TrimSpace(req.GetRemark())
+
+	existing, err := s.assetRepo.FindByYM(ctx, ym)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			s.log.Errorf("query asset summary failed: ym=%s err=%v", ym, err)
+			return nil, status.Error(codes.Internal, "query asset summary failed")
+		}
+
+		if syncErr := s.syncAssetSummaryByYM(ctx, ym); syncErr != nil {
+			s.log.Errorf("sync asset summary before remark update failed: ym=%s err=%v", ym, syncErr)
+			return nil, status.Error(codes.Internal, "sync asset summary failed")
+		}
+		existing, err = s.assetRepo.FindByYM(ctx, ym)
+		if err != nil && err != sql.ErrNoRows {
+			s.log.Errorf("query synced asset summary failed: ym=%s err=%v", ym, err)
+			return nil, status.Error(codes.Internal, "query asset summary failed")
+		}
+	}
+
+	next := &data.Asset{
+		YM:        ym,
+		Asset:     "0",
+		NetAsset:  "0",
+		Liability: "0",
+		Remark:    remark,
+	}
+	if existing != nil {
+		next.Asset = existing.Asset
+		next.NetAsset = existing.NetAsset
+		next.Liability = existing.Liability
+	}
+	if err = s.assetRepo.Upsert(ctx, next); err != nil {
+		s.log.Errorf("upsert asset remark failed: ym=%s err=%v", ym, err)
+		return nil, status.Error(codes.Internal, "update asset remark failed")
+	}
+
+	return &bookkeepingv1.UpdateAssetRemarkReply{
+		Item: &bookkeepingv1.AssetItem{
+			Ym:        next.YM,
+			Asset:     next.Asset,
+			NetAsset:  next.NetAsset,
+			Liability: next.Liability,
+			Remark:    next.Remark,
+		},
+	}, nil
 }
 
 func (s *BookkeepingService) UpsertLedgerEntry(ctx context.Context, req *bookkeepingv1.UpsertLedgerEntryRequest) (*bookkeepingv1.UpsertLedgerEntryReply, error) {
@@ -667,6 +1123,9 @@ func (s *BookkeepingService) LoanSummaryList(ctx context.Context, _ *bookkeeping
 			CumulativeInterest:  formatMoney(summary.CumulativeInterest),
 			NextDueDate:         summary.NextDueDate,
 			RemainingInterest:   formatMoney(summary.RemainingInterest),
+			EstimatedPayoffDate: summary.EstimatedPayoffDate,
+			TermMonths:          uint32(lc.loans[i].TermMonths),
+			ShortenedMonths:     uint32(summary.ShortenedMonths),
 		})
 	}
 	return reply, nil
@@ -769,6 +1228,9 @@ func (s *BookkeepingService) LoanDetail(ctx context.Context, req *bookkeepingv1.
 			CumulativeInterest:  formatMoney(summary.CumulativeInterest),
 			NextDueDate:         summary.NextDueDate,
 			RemainingInterest:   formatMoney(summary.RemainingInterest),
+			EstimatedPayoffDate: summary.EstimatedPayoffDate,
+			TermMonths:          uint32(loan.TermMonths),
+			ShortenedMonths:     uint32(summary.ShortenedMonths),
 		},
 		Plans:           make([]*bookkeepingv1.LoanRepaymentPlanItem, 0, len(plans)),
 		RateAdjustments: rateHistory,
@@ -785,6 +1247,194 @@ func (s *BookkeepingService) LoanDetail(ctx context.Context, req *bookkeepingv1.
 		})
 	}
 	return reply, nil
+}
+
+func toProtoAssetDetailItem(item data.AssetDetail, consumerLoan *consumerLoanPayload) *bookkeepingv1.AssetDetailItem {
+	reply := &bookkeepingv1.AssetDetailItem{
+		DetailId:   item.DetailID,
+		Ym:         item.YM,
+		AssetType:  item.AssetType,
+		SubType:    item.SubType,
+		PresetCode: item.PresetCode,
+		AssetName:  item.AssetName,
+		Remark:     item.Remark,
+		Amount:     item.Amount,
+	}
+	if consumerLoan != nil {
+		reply.ConsumerLoanTotalAmount = formatMoney(consumerLoan.totalAmount)
+		reply.ConsumerLoanStartYm = consumerLoan.startYM
+		reply.ConsumerLoanTermMonths = uint32(consumerLoan.termMonths)
+	}
+	return reply
+}
+
+func normalizeAssetDetailPayload(
+	rawYM, rawAssetType, rawSubType, rawPresetCode, rawAssetName, rawRemark, rawAmount string,
+) (string, string, string, string, string, string, float64, error) {
+	ym := strings.TrimSpace(rawYM)
+	if _, err := parseYM(ym); err != nil {
+		return "", "", "", "", "", "", 0, fmt.Errorf("ym must be YYYY.MM")
+	}
+	assetType := strings.ToLower(strings.TrimSpace(rawAssetType))
+	if _, ok := supportedAssetTypes[assetType]; !ok {
+		return "", "", "", "", "", "", 0, fmt.Errorf("asset type is unsupported")
+	}
+	subType := strings.TrimSpace(rawSubType)
+	if _, ok := supportedAssetSubTypes[subType]; !ok {
+		return "", "", "", "", "", "", 0, fmt.Errorf("sub type is unsupported")
+	}
+	assetName := strings.TrimSpace(rawAssetName)
+	if assetName == "" {
+		return "", "", "", "", "", "", 0, fmt.Errorf("asset name is required")
+	}
+	amount, err := parseMoney(rawAmount)
+	if err != nil || amount <= 0 {
+		return "", "", "", "", "", "", 0, fmt.Errorf("amount must be positive")
+	}
+	presetCode := strings.TrimSpace(rawPresetCode)
+	remark := strings.TrimSpace(rawRemark)
+	return ym, assetType, subType, presetCode, assetName, remark, amount, nil
+}
+
+func normalizeConsumerLoanPayload(rawTotalAmount, rawStartYM string, rawTermMonths uint32) (*consumerLoanPayload, error) {
+	totalAmount, err := parseMoney(rawTotalAmount)
+	if err != nil || totalAmount <= 0 {
+		return nil, fmt.Errorf("consumer loan total amount must be positive")
+	}
+	startYM := strings.TrimSpace(rawStartYM)
+	if _, err = parseYM(startYM); err != nil {
+		return nil, fmt.Errorf("consumer loan start ym must be YYYY.MM")
+	}
+	termMonths := int32(rawTermMonths)
+	if _, ok := supportedConsumerLoanTerms[termMonths]; !ok {
+		return nil, fmt.Errorf("consumer loan term months is unsupported")
+	}
+	return &consumerLoanPayload{
+		totalAmount: round2(totalAmount),
+		startYM:     startYM,
+		termMonths:  termMonths,
+	}, nil
+}
+
+type consumerLoanMonthView struct {
+	DetailID        string
+	AssetName       string
+	Remark          string
+	PresetCode      string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	totalAmount     float64
+	startYM         string
+	termMonths      int32
+	remainingAmount float64
+}
+
+func (s *BookkeepingService) loadConsumerLoanMapForYM(ctx context.Context, targetYM ymValue) (map[string]consumerLoanMonthView, error) {
+	records, err := s.consumerLoanRepo.ListWithDetail(ctx)
+	if err != nil {
+		return nil, err
+	}
+	reply := make(map[string]consumerLoanMonthView, len(records))
+	for i := range records {
+		startYM, parseErr := parseYM(records[i].StartYM)
+		if parseErr != nil {
+			return nil, fmt.Errorf("invalid consumer loan start ym detail_id=%s", records[i].DetailID)
+		}
+		total, parseErr := parseMoney(records[i].TotalAmount)
+		if parseErr != nil {
+			return nil, fmt.Errorf("invalid consumer loan total amount detail_id=%s", records[i].DetailID)
+		}
+		remaining, include := calcConsumerLoanRemaining(total, startYM, records[i].TermMonths, targetYM)
+		if !include {
+			continue
+		}
+		reply[records[i].DetailID] = consumerLoanMonthView{
+			DetailID:        records[i].DetailID,
+			AssetName:       records[i].AssetName,
+			Remark:          records[i].Remark,
+			PresetCode:      records[i].PresetCode,
+			CreatedAt:       records[i].CreatedAt,
+			UpdatedAt:       records[i].UpdatedAt,
+			totalAmount:     round2(total),
+			startYM:         records[i].StartYM,
+			termMonths:      records[i].TermMonths,
+			remainingAmount: remaining,
+		}
+	}
+	return reply, nil
+}
+
+func (s *BookkeepingService) syncAssetSummaryByYM(ctx context.Context, ym string) error {
+	targetYM, err := parseYM(ym)
+	if err != nil {
+		return err
+	}
+	if targetYM.Before(assetDetailStartYM) {
+		return nil
+	}
+	items, err := s.assetDetailRepo.ListByYM(ctx, ym)
+	if err != nil {
+		return err
+	}
+
+	assetTotal := 0.0
+	liabilityTotal := 0.0
+	for i := range items {
+		if items[i].SubType == "消费贷款" {
+			continue
+		}
+		amount, parseErr := parseMoney(items[i].Amount)
+		if parseErr != nil || amount < 0 {
+			return fmt.Errorf("invalid amount in asset detail detail_id=%s", items[i].DetailID)
+		}
+		if items[i].AssetType == "liability" {
+			liabilityTotal += amount
+			continue
+		}
+		assetTotal += amount
+	}
+	consumerByDetailID, err := s.loadConsumerLoanMapForYM(ctx, targetYM)
+	if err != nil {
+		return err
+	}
+	for _, item := range consumerByDetailID {
+		liabilityTotal += item.remainingAmount
+	}
+	remark := ""
+	existing, err := s.assetRepo.FindByYM(ctx, ym)
+	if err == nil {
+		remark = existing.Remark
+	} else if err != sql.ErrNoRows {
+		return err
+	}
+
+	return s.assetRepo.Upsert(ctx, &data.Asset{
+		YM:        ym,
+		Asset:     formatMoney(assetTotal),
+		NetAsset:  formatMoney(assetTotal - liabilityTotal),
+		Liability: formatMoney(liabilityTotal),
+		Remark:    remark,
+	})
+}
+
+func (s *BookkeepingService) resyncAssetSummaryFromYM(ctx context.Context, startYM string) error {
+	start, err := parseYM(startYM)
+	if err != nil {
+		return err
+	}
+	if start.Before(assetDetailStartYM) {
+		start = assetDetailStartYM
+	}
+	items, err := s.assetRepo.List(ctx, start.String(), "")
+	if err != nil {
+		return err
+	}
+	for i := range items {
+		if err = s.syncAssetSummaryByYM(ctx, items[i].YM); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func toProtoLoanType(loanType string) bookkeepingv1.LoanType {

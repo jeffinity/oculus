@@ -14,6 +14,15 @@ import (
 
 var ymRegex = regexp.MustCompile(`^\d{4}\.\d{2}$`)
 
+var supportedConsumerLoanTerms = map[int32]struct{}{
+	3:  {},
+	6:  {},
+	12: {},
+	24: {},
+	36: {},
+	60: {},
+}
+
 type ymValue struct {
 	year  int
 	month int
@@ -64,6 +73,10 @@ func (y ymValue) AddMonths(n int) ymValue {
 	return ymValue{year: year, month: month}
 }
 
+func (y ymValue) DiffMonths(other ymValue) int {
+	return (y.year-other.year)*12 + (y.month - other.month)
+}
+
 func ymFromDate(d time.Time) ymValue {
 	return ymValue{year: d.Year(), month: int(d.Month())}
 }
@@ -110,6 +123,10 @@ func formatDate(d time.Time) string {
 
 func round2(v float64) float64 {
 	return math.Round(v*100) / 100
+}
+
+func toCents(v float64) int64 {
+	return int64(math.Round(v * 100))
 }
 
 func formatMoney(v float64) string {
@@ -221,6 +238,34 @@ func loanSnapshotForYM(loan data.Loan, adjustments []data.LoanRateAdjustment, pr
 		return loanMonthSnapshot{}, err
 	}
 	return c.snapshotForYM(targetRawYM)
+}
+
+func calcConsumerLoanRemaining(total float64, startYM ymValue, termMonths int32, targetYM ymValue) (float64, bool) {
+	if total <= 0 || termMonths <= 0 {
+		return 0, false
+	}
+	diff := targetYM.DiffMonths(startYM)
+	if diff < 0 {
+		return 0, false
+	}
+	paidMonths := diff
+	if paidMonths > int(termMonths) {
+		paidMonths = int(termMonths)
+	}
+	totalCents := toCents(total)
+	base := totalCents / int64(termMonths)
+	remainder := totalCents % int64(termMonths)
+	paidCents := int64(paidMonths) * base
+	if int64(paidMonths) > remainder {
+		paidCents += remainder
+	} else {
+		paidCents += int64(paidMonths)
+	}
+	remainingCents := totalCents - paidCents
+	if remainingCents <= 0 {
+		return 0, false
+	}
+	return round2(float64(remainingCents) / 100), true
 }
 
 type loanRepaymentRecord struct {
@@ -364,20 +409,20 @@ func buildLoanComputation(loan data.Loan, adjustments []data.LoanRateAdjustment,
 			break
 		}
 		rateBeforeAdjust := currentRate
-		appliedNewRate := false
+		nextRate := currentRate
 		appliedDate := time.Time{}
 		shouldRecalcPayment := false
 		for i := 0; i < len(c.rateTimeline); i++ {
 			if !dueDate.Before(c.rateTimeline[i].effectiveDate) {
-				if currentRate != c.rateTimeline[i].rate {
-					currentRate = c.rateTimeline[i].rate
-					appliedNewRate = true
-					appliedDate = c.rateTimeline[i].effectiveDate
-					shouldRecalcPayment = true
-				}
+				nextRate = c.rateTimeline[i].rate
+				appliedDate = c.rateTimeline[i].effectiveDate
 				continue
 			}
 			break
+		}
+		if nextRate != currentRate {
+			currentRate = nextRate
+			shouldRecalcPayment = true
 		}
 
 		prepaymentPrincipal := 0.0
@@ -408,7 +453,7 @@ func buildLoanComputation(loan data.Loan, adjustments []data.LoanRateAdjustment,
 		payment := currentPayment
 		regularInterest := remaining * currentRate / 12
 		carryoverInterest := 0.0
-		if appliedNewRate && rateBeforeAdjust != currentRate {
+		if shouldRecalcPayment && rateBeforeAdjust != currentRate {
 			if appliedDate.After(prevDue) && !appliedDate.After(dueDate) {
 				days := carryoverSpreadDaysByDate(prevDue, appliedDate)
 				carryoverInterest = remaining * (rateBeforeAdjust - currentRate) * float64(days) / 360
@@ -503,6 +548,8 @@ type loanSummaryData struct {
 	RemainingInterest   float64
 	NextDueDate         string
 	AnnualRate          float64
+	EstimatedPayoffDate string
+	ShortenedMonths     int
 }
 
 func (c *loanComputation) totalPlannedInterest() float64 {
@@ -510,6 +557,23 @@ func (c *loanComputation) totalPlannedInterest() float64 {
 		return 0
 	}
 	return c.records[len(c.records)-1].CumulativeInterest
+}
+
+func (c *loanComputation) estimatedPayoffDate() time.Time {
+	if len(c.records) == 0 {
+		return time.Time{}
+	}
+	return c.records[len(c.records)-1].DueDate
+}
+
+func (c *loanComputation) scheduledPayoffDate() time.Time {
+	if !c.hasRepayment || c.loan.TermMonths <= 0 {
+		return time.Time{}
+	}
+	repaymentDay := repaymentDayFromLoan(c.loan, c.startDate)
+	firstDue := firstDueDate(c.startDate, repaymentDay)
+	finalMonth := time.Date(firstDue.Year(), firstDue.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, int(c.loan.TermMonths)-1, 0)
+	return dueDateOfMonth(finalMonth.Year(), finalMonth.Month(), repaymentDay)
 }
 
 func (c *loanComputation) summaryAt(now time.Time) (loanSummaryData, error) {
@@ -522,11 +586,13 @@ func (c *loanComputation) summaryAt(now time.Time) (loanSummaryData, error) {
 	if len(c.records) == 0 {
 		return s, nil
 	}
+	lastPaidDue := time.Time{}
 	for i := range c.records {
 		if c.records[i].DueDate.After(now) {
 			s.NextDueDate = formatDate(c.records[i].DueDate)
 			break
 		}
+		lastPaidDue = c.records[i].DueDate
 		s.RepaidMonths = c.records[i].Period
 		s.CumulativePrincipal = c.records[i].CumulativePrincipal
 		s.CumulativeInterest = c.records[i].CumulativeInterest
@@ -534,6 +600,29 @@ func (c *loanComputation) summaryAt(now time.Time) (loanSummaryData, error) {
 	}
 	if s.RepaidMonths == 0 {
 		s.RemainingPrincipal = c.initialAmount
+	}
+	for i := range c.prepayments {
+		if c.prepayments[i].date.After(now) {
+			break
+		}
+		if !lastPaidDue.IsZero() && !c.prepayments[i].date.After(lastPaidDue) {
+			continue
+		}
+		s.CumulativePrincipal += c.prepayments[i].amount
+		s.RemainingPrincipal -= c.prepayments[i].amount
+	}
+	s.CumulativePrincipal = round2(s.CumulativePrincipal)
+	if s.RemainingPrincipal < 0 {
+		s.RemainingPrincipal = 0
+	}
+	s.RemainingPrincipal = round2(s.RemainingPrincipal)
+	estimatedPayoffDate := c.estimatedPayoffDate()
+	if !estimatedPayoffDate.IsZero() {
+		s.EstimatedPayoffDate = formatDate(estimatedPayoffDate)
+	}
+	scheduledPayoffDate := c.scheduledPayoffDate()
+	if !estimatedPayoffDate.IsZero() && !scheduledPayoffDate.IsZero() && estimatedPayoffDate.Before(scheduledPayoffDate) {
+		s.ShortenedMonths = ymFromDate(scheduledPayoffDate).DiffMonths(ymFromDate(estimatedPayoffDate))
 	}
 	totalInterest := c.totalPlannedInterest()
 	remainingInterest := totalInterest - s.CumulativeInterest

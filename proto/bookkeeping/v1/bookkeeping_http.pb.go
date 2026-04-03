@@ -21,13 +21,18 @@ const _ = http.SupportPackageIsVersion1
 
 const OperationBookkeepingServiceAddLoanPrepayment = "/api.bookkeeping.v1.BookkeepingService/AddLoanPrepayment"
 const OperationBookkeepingServiceAdjustLoanRate = "/api.bookkeeping.v1.BookkeepingService/AdjustLoanRate"
+const OperationBookkeepingServiceAssetDetailList = "/api.bookkeeping.v1.BookkeepingService/AssetDetailList"
 const OperationBookkeepingServiceAssetList = "/api.bookkeeping.v1.BookkeepingService/AssetList"
+const OperationBookkeepingServiceCreateAssetDetail = "/api.bookkeeping.v1.BookkeepingService/CreateAssetDetail"
 const OperationBookkeepingServiceCreateMortgageLoan = "/api.bookkeeping.v1.BookkeepingService/CreateMortgageLoan"
+const OperationBookkeepingServiceDeleteAssetDetail = "/api.bookkeeping.v1.BookkeepingService/DeleteAssetDetail"
 const OperationBookkeepingServiceLedgerList = "/api.bookkeeping.v1.BookkeepingService/LedgerList"
 const OperationBookkeepingServiceLedgerStats = "/api.bookkeeping.v1.BookkeepingService/LedgerStats"
 const OperationBookkeepingServiceLoanDetail = "/api.bookkeeping.v1.BookkeepingService/LoanDetail"
 const OperationBookkeepingServiceLoanSummaryList = "/api.bookkeeping.v1.BookkeepingService/LoanSummaryList"
 const OperationBookkeepingServiceStartLoanRepayment = "/api.bookkeeping.v1.BookkeepingService/StartLoanRepayment"
+const OperationBookkeepingServiceUpdateAssetDetail = "/api.bookkeeping.v1.BookkeepingService/UpdateAssetDetail"
+const OperationBookkeepingServiceUpdateAssetRemark = "/api.bookkeeping.v1.BookkeepingService/UpdateAssetRemark"
 const OperationBookkeepingServiceUpsertLedgerEntry = "/api.bookkeeping.v1.BookkeepingService/UpsertLedgerEntry"
 
 type BookkeepingServiceHTTPServer interface {
@@ -35,10 +40,16 @@ type BookkeepingServiceHTTPServer interface {
 	AddLoanPrepayment(context.Context, *AddLoanPrepaymentRequest) (*AddLoanPrepaymentReply, error)
 	// AdjustLoanRate 调整贷款利率（从指定年月起生效，重算后续还款计划）
 	AdjustLoanRate(context.Context, *AdjustLoanRateRequest) (*AdjustLoanRateReply, error)
+	// AssetDetailList 查询某月资产明细（若当月为空且上月存在，会自动复制一份上月数据到当月）
+	AssetDetailList(context.Context, *AssetDetailListRequest) (*AssetDetailListReply, error)
 	// AssetList 查询资产列表（按月份聚合，返回资产、负债、净资产及贷款明细）
 	AssetList(context.Context, *AssetListRequest) (*AssetListReply, error)
+	// CreateAssetDetail 新增资产明细
+	CreateAssetDetail(context.Context, *CreateAssetDetailRequest) (*CreateAssetDetailReply, error)
 	// CreateMortgageLoan 创建房贷（等额本息）
 	CreateMortgageLoan(context.Context, *CreateMortgageLoanRequest) (*CreateMortgageLoanReply, error)
+	// DeleteAssetDetail 删除资产明细
+	DeleteAssetDetail(context.Context, *DeleteAssetDetailRequest) (*DeleteAssetDetailReply, error)
 	// LedgerList 查询某月账本清单
 	LedgerList(context.Context, *LedgerListRequest) (*LedgerListReply, error)
 	// LedgerStats 查询账单统计（支持按月/按年趋势与支出排行榜）
@@ -49,6 +60,10 @@ type BookkeepingServiceHTTPServer interface {
 	LoanSummaryList(context.Context, *LoanSummaryListRequest) (*LoanSummaryListReply, error)
 	// StartLoanRepayment 设置贷款开始还款时间
 	StartLoanRepayment(context.Context, *StartLoanRepaymentRequest) (*StartLoanRepaymentReply, error)
+	// UpdateAssetDetail 更新资产明细
+	UpdateAssetDetail(context.Context, *UpdateAssetDetailRequest) (*UpdateAssetDetailReply, error)
+	// UpdateAssetRemark 更新某月资产备注
+	UpdateAssetRemark(context.Context, *UpdateAssetRemarkRequest) (*UpdateAssetRemarkReply, error)
 	// UpsertLedgerEntry 新增或更新账本记录（按日期+类别+金额唯一更新）
 	UpsertLedgerEntry(context.Context, *UpsertLedgerEntryRequest) (*UpsertLedgerEntryReply, error)
 }
@@ -56,6 +71,11 @@ type BookkeepingServiceHTTPServer interface {
 func RegisterBookkeepingServiceHTTPServer(s *http.Server, srv BookkeepingServiceHTTPServer) {
 	r := s.Route("/")
 	r.GET("/api/v1/bookkeeping/assets", _BookkeepingService_AssetList0_HTTP_Handler(srv))
+	r.GET("/api/v1/bookkeeping/asset-details", _BookkeepingService_AssetDetailList0_HTTP_Handler(srv))
+	r.POST("/api/v1/bookkeeping/asset-details", _BookkeepingService_CreateAssetDetail0_HTTP_Handler(srv))
+	r.PUT("/api/v1/bookkeeping/asset-details/{detail_id}", _BookkeepingService_UpdateAssetDetail0_HTTP_Handler(srv))
+	r.DELETE("/api/v1/bookkeeping/asset-details/{detail_id}", _BookkeepingService_DeleteAssetDetail0_HTTP_Handler(srv))
+	r.PUT("/api/v1/bookkeeping/assets/{ym}/remark", _BookkeepingService_UpdateAssetRemark0_HTTP_Handler(srv))
 	r.POST("/api/v1/bookkeeping/ledgers", _BookkeepingService_UpsertLedgerEntry0_HTTP_Handler(srv))
 	r.GET("/api/v1/bookkeeping/ledgers", _BookkeepingService_LedgerList0_HTTP_Handler(srv))
 	r.GET("/api/v1/bookkeeping/ledgers/stats", _BookkeepingService_LedgerStats0_HTTP_Handler(srv))
@@ -82,6 +102,119 @@ func _BookkeepingService_AssetList0_HTTP_Handler(srv BookkeepingServiceHTTPServe
 			return err
 		}
 		reply := out.(*AssetListReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _BookkeepingService_AssetDetailList0_HTTP_Handler(srv BookkeepingServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in AssetDetailListRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationBookkeepingServiceAssetDetailList)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.AssetDetailList(ctx, req.(*AssetDetailListRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*AssetDetailListReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _BookkeepingService_CreateAssetDetail0_HTTP_Handler(srv BookkeepingServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateAssetDetailRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationBookkeepingServiceCreateAssetDetail)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateAssetDetail(ctx, req.(*CreateAssetDetailRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*CreateAssetDetailReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _BookkeepingService_UpdateAssetDetail0_HTTP_Handler(srv BookkeepingServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateAssetDetailRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationBookkeepingServiceUpdateAssetDetail)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateAssetDetail(ctx, req.(*UpdateAssetDetailRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*UpdateAssetDetailReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _BookkeepingService_DeleteAssetDetail0_HTTP_Handler(srv BookkeepingServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeleteAssetDetailRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationBookkeepingServiceDeleteAssetDetail)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeleteAssetDetail(ctx, req.(*DeleteAssetDetailRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeleteAssetDetailReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _BookkeepingService_UpdateAssetRemark0_HTTP_Handler(srv BookkeepingServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateAssetRemarkRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationBookkeepingServiceUpdateAssetRemark)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateAssetRemark(ctx, req.(*UpdateAssetRemarkRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*UpdateAssetRemarkReply)
 		return ctx.Result(200, reply)
 	}
 }
@@ -289,10 +422,16 @@ type BookkeepingServiceHTTPClient interface {
 	AddLoanPrepayment(ctx context.Context, req *AddLoanPrepaymentRequest, opts ...http.CallOption) (rsp *AddLoanPrepaymentReply, err error)
 	// AdjustLoanRate 调整贷款利率（从指定年月起生效，重算后续还款计划）
 	AdjustLoanRate(ctx context.Context, req *AdjustLoanRateRequest, opts ...http.CallOption) (rsp *AdjustLoanRateReply, err error)
+	// AssetDetailList 查询某月资产明细（若当月为空且上月存在，会自动复制一份上月数据到当月）
+	AssetDetailList(ctx context.Context, req *AssetDetailListRequest, opts ...http.CallOption) (rsp *AssetDetailListReply, err error)
 	// AssetList 查询资产列表（按月份聚合，返回资产、负债、净资产及贷款明细）
 	AssetList(ctx context.Context, req *AssetListRequest, opts ...http.CallOption) (rsp *AssetListReply, err error)
+	// CreateAssetDetail 新增资产明细
+	CreateAssetDetail(ctx context.Context, req *CreateAssetDetailRequest, opts ...http.CallOption) (rsp *CreateAssetDetailReply, err error)
 	// CreateMortgageLoan 创建房贷（等额本息）
 	CreateMortgageLoan(ctx context.Context, req *CreateMortgageLoanRequest, opts ...http.CallOption) (rsp *CreateMortgageLoanReply, err error)
+	// DeleteAssetDetail 删除资产明细
+	DeleteAssetDetail(ctx context.Context, req *DeleteAssetDetailRequest, opts ...http.CallOption) (rsp *DeleteAssetDetailReply, err error)
 	// LedgerList 查询某月账本清单
 	LedgerList(ctx context.Context, req *LedgerListRequest, opts ...http.CallOption) (rsp *LedgerListReply, err error)
 	// LedgerStats 查询账单统计（支持按月/按年趋势与支出排行榜）
@@ -303,6 +442,10 @@ type BookkeepingServiceHTTPClient interface {
 	LoanSummaryList(ctx context.Context, req *LoanSummaryListRequest, opts ...http.CallOption) (rsp *LoanSummaryListReply, err error)
 	// StartLoanRepayment 设置贷款开始还款时间
 	StartLoanRepayment(ctx context.Context, req *StartLoanRepaymentRequest, opts ...http.CallOption) (rsp *StartLoanRepaymentReply, err error)
+	// UpdateAssetDetail 更新资产明细
+	UpdateAssetDetail(ctx context.Context, req *UpdateAssetDetailRequest, opts ...http.CallOption) (rsp *UpdateAssetDetailReply, err error)
+	// UpdateAssetRemark 更新某月资产备注
+	UpdateAssetRemark(ctx context.Context, req *UpdateAssetRemarkRequest, opts ...http.CallOption) (rsp *UpdateAssetRemarkReply, err error)
 	// UpsertLedgerEntry 新增或更新账本记录（按日期+类别+金额唯一更新）
 	UpsertLedgerEntry(ctx context.Context, req *UpsertLedgerEntryRequest, opts ...http.CallOption) (rsp *UpsertLedgerEntryReply, err error)
 }
@@ -343,6 +486,20 @@ func (c *BookkeepingServiceHTTPClientImpl) AdjustLoanRate(ctx context.Context, i
 	return &out, nil
 }
 
+// AssetDetailList 查询某月资产明细（若当月为空且上月存在，会自动复制一份上月数据到当月）
+func (c *BookkeepingServiceHTTPClientImpl) AssetDetailList(ctx context.Context, in *AssetDetailListRequest, opts ...http.CallOption) (*AssetDetailListReply, error) {
+	var out AssetDetailListReply
+	pattern := "/api/v1/bookkeeping/asset-details"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationBookkeepingServiceAssetDetailList))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // AssetList 查询资产列表（按月份聚合，返回资产、负债、净资产及贷款明细）
 func (c *BookkeepingServiceHTTPClientImpl) AssetList(ctx context.Context, in *AssetListRequest, opts ...http.CallOption) (*AssetListReply, error) {
 	var out AssetListReply
@@ -357,6 +514,20 @@ func (c *BookkeepingServiceHTTPClientImpl) AssetList(ctx context.Context, in *As
 	return &out, nil
 }
 
+// CreateAssetDetail 新增资产明细
+func (c *BookkeepingServiceHTTPClientImpl) CreateAssetDetail(ctx context.Context, in *CreateAssetDetailRequest, opts ...http.CallOption) (*CreateAssetDetailReply, error) {
+	var out CreateAssetDetailReply
+	pattern := "/api/v1/bookkeeping/asset-details"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationBookkeepingServiceCreateAssetDetail))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // CreateMortgageLoan 创建房贷（等额本息）
 func (c *BookkeepingServiceHTTPClientImpl) CreateMortgageLoan(ctx context.Context, in *CreateMortgageLoanRequest, opts ...http.CallOption) (*CreateMortgageLoanReply, error) {
 	var out CreateMortgageLoanReply
@@ -365,6 +536,20 @@ func (c *BookkeepingServiceHTTPClientImpl) CreateMortgageLoan(ctx context.Contex
 	opts = append(opts, http.Operation(OperationBookkeepingServiceCreateMortgageLoan))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// DeleteAssetDetail 删除资产明细
+func (c *BookkeepingServiceHTTPClientImpl) DeleteAssetDetail(ctx context.Context, in *DeleteAssetDetailRequest, opts ...http.CallOption) (*DeleteAssetDetailReply, error) {
+	var out DeleteAssetDetailReply
+	pattern := "/api/v1/bookkeeping/asset-details/{detail_id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationBookkeepingServiceDeleteAssetDetail))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -435,6 +620,34 @@ func (c *BookkeepingServiceHTTPClientImpl) StartLoanRepayment(ctx context.Contex
 	opts = append(opts, http.Operation(OperationBookkeepingServiceStartLoanRepayment))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// UpdateAssetDetail 更新资产明细
+func (c *BookkeepingServiceHTTPClientImpl) UpdateAssetDetail(ctx context.Context, in *UpdateAssetDetailRequest, opts ...http.CallOption) (*UpdateAssetDetailReply, error) {
+	var out UpdateAssetDetailReply
+	pattern := "/api/v1/bookkeeping/asset-details/{detail_id}"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationBookkeepingServiceUpdateAssetDetail))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// UpdateAssetRemark 更新某月资产备注
+func (c *BookkeepingServiceHTTPClientImpl) UpdateAssetRemark(ctx context.Context, in *UpdateAssetRemarkRequest, opts ...http.CallOption) (*UpdateAssetRemarkReply, error) {
+	var out UpdateAssetRemarkReply
+	pattern := "/api/v1/bookkeeping/assets/{ym}/remark"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationBookkeepingServiceUpdateAssetRemark))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

@@ -1,4 +1,3 @@
-/* eslint-disable max-lines-per-function */
 import {
   AppstoreOutlined,
   AppleOutlined,
@@ -29,9 +28,11 @@ import {
   ToolOutlined,
   WalletOutlined
 } from "@ant-design/icons";
-import { Button, Card, Empty, Space, Spin, Typography } from "antd";
+import { Button, Card, Empty, Spin, Typography, message } from "antd";
 import dayjs from "dayjs";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import MobileHeader from "../components/MobileHeader";
 
 const MONEY_FORMAT = new Intl.NumberFormat("zh-CN", {
   minimumFractionDigits: 2,
@@ -74,6 +75,23 @@ const CATEGORY_ICON_MAP = {
   快递: InboxOutlined,
   设置: SettingOutlined
 };
+const SUPPORTED_CATEGORIES = new Set(Object.keys(CATEGORY_ICON_MAP));
+const CATEGORY_ALIAS_MAP = {
+  美食: "餐饮",
+  零嘴: "零食",
+  零食饮料: "零食",
+  打车: "交通",
+  出行: "交通",
+  学费: "学习",
+  书本: "书籍",
+  宠物用品: "宠物",
+  红包: "礼金",
+  人情: "礼金",
+  礼品: "礼物",
+  快递费: "快递"
+};
+
+const CSV_CONCURRENCY = 5;
 
 function parseAmount(v) {
   if (typeof v === "number") return v;
@@ -84,7 +102,13 @@ function parseAmount(v) {
 function normalizeEntryDate(raw) {
   const base = `${raw || ""}`.trim();
   if (!base) return "";
-  const d = dayjs(base.replaceAll(".", "-").replaceAll("/", "-"));
+  const normalized = base
+    .replaceAll("年", "-")
+    .replaceAll("月", "-")
+    .replaceAll("日", "")
+    .replaceAll(".", "-")
+    .replaceAll("/", "-");
+  const d = dayjs(normalized);
   return d.isValid() ? d.format("YYYY-MM-DD") : base;
 }
 
@@ -202,11 +226,128 @@ async function requestLedgerList(ym) {
   return (json.items || []).map(normalizeItem);
 }
 
+async function requestUpsertLedgerEntry(payload) {
+  const res = await fetch("/api/v1/bookkeeping/ledgers", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error(`request failed: ${res.status}`);
+  return res.json();
+}
+
+function splitCsvLine(line) {
+  const result = [];
+  let current = "";
+  let inQuote = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === "\"") {
+      if (inQuote && line[i + 1] === "\"") {
+        current += "\"";
+        i++;
+        continue;
+      }
+      inQuote = !inQuote;
+      continue;
+    }
+    if (char === "," && !inQuote) {
+      result.push(current.trim());
+      current = "";
+      continue;
+    }
+    current += char;
+  }
+  result.push(current.trim());
+  return result;
+}
+
+function countChineseChars(text) {
+  const matches = `${text || ""}`.match(/[\u4e00-\u9fa5]/g);
+  return matches ? matches.length : 0;
+}
+
+function decodeCsvBuffer(buffer) {
+  const utf8 = new TextDecoder("utf-8", { fatal: false }).decode(buffer);
+  const utf8Score = countChineseChars(utf8) - (utf8.match(/�/g) || []).length * 10;
+  let gbk = "";
+  let gbkScore = Number.NEGATIVE_INFINITY;
+  try {
+    gbk = new TextDecoder("gb18030", { fatal: false }).decode(buffer);
+    gbkScore = countChineseChars(gbk) - (gbk.match(/�/g) || []).length * 10;
+  } catch {
+    gbkScore = Number.NEGATIVE_INFINITY;
+  }
+  return gbkScore > utf8Score ? gbk : utf8;
+}
+
+function normalizeCategory(raw) {
+  const name = `${raw || ""}`.trim();
+  if (!name) return "";
+  if (SUPPORTED_CATEGORIES.has(name)) return name;
+  const alias = CATEGORY_ALIAS_MAP[name];
+  if (alias && SUPPORTED_CATEGORIES.has(alias)) return alias;
+  return "";
+}
+
+function parseLedgerRowsFromCsvText(text) {
+  const lines = `${text || ""}`
+    .replace(/^\uFEFF/, "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length === 0) return [];
+
+  const rows = [];
+  for (const line of lines) {
+    const cols = splitCsvLine(line).map((x) => x.replace(/^"|"$/g, "").trim());
+    if (cols.length < 5) continue;
+    const entryDate = normalizeEntryDate(cols[0]);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(entryDate)) continue;
+    const incomeExpense = `${cols[1] || ""}`.trim();
+    const category = normalizeCategory(cols[2]);
+    const amountRaw = `${cols[4] || ""}`.replaceAll(",", "").trim();
+    const amountAbs = Number(amountRaw);
+    if (!category || !Number.isFinite(amountAbs) || amountAbs <= 0) continue;
+    const isIncome = incomeExpense === "收入";
+    const amount = isIncome ? amountAbs : -amountAbs;
+    rows.push({
+      entry_date: entryDate,
+      category,
+      amount: amount.toFixed(2),
+      remark: `${cols[5] || ""}`.trim()
+    });
+  }
+  return rows;
+}
+
+async function importLedgerRows(rows) {
+  let imported = 0;
+  let failed = 0;
+  let index = 0;
+  const workers = Array.from({ length: Math.min(CSV_CONCURRENCY, rows.length) }, async () => {
+    while (index < rows.length) {
+      const currentIndex = index;
+      index++;
+      try {
+        await requestUpsertLedgerEntry(rows[currentIndex]);
+        imported++;
+      } catch {
+        failed++;
+      }
+    }
+  });
+  await Promise.all(workers);
+  return { imported, failed };
+}
+
 export default function LedgerMonthPage() {
   const search = new URLSearchParams(window.location.search);
   const ym = `${search.get("ledger_ym") || ""}`.trim();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     let active = true;
@@ -240,19 +381,69 @@ export default function LedgerMonthPage() {
   const groups = useMemo(() => buildGroups(items), [items]);
   const pageState = renderLedgerState(loading, groups);
 
+  async function refreshCurrentMonth() {
+    if (!/^\d{4}\.\d{2}$/.test(ym)) return;
+    try {
+      const list = await requestLedgerList(ym);
+      setItems(list);
+    } catch {
+      // ignore
+    }
+  }
+
+  async function onCsvUploadChange(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (importing) return;
+
+    setImporting(true);
+    try {
+      const buffer = await file.arrayBuffer();
+      const text = decodeCsvBuffer(buffer);
+      const rows = parseLedgerRowsFromCsvText(text);
+      if (rows.length === 0) {
+        message.warning("未识别到可导入的明细，请检查 CSV 格式");
+        return;
+      }
+      const { imported, failed } = await importLedgerRows(rows);
+      await refreshCurrentMonth();
+      if (failed > 0) {
+        message.warning(`导入完成：成功 ${imported} 条，失败 ${failed} 条`);
+      } else {
+        message.success(`导入完成：成功 ${imported} 条`);
+      }
+    } catch {
+      message.error("导入失败，请检查文件格式后重试");
+    } finally {
+      setImporting(false);
+    }
+  }
+
   return (
-    <div className="page-wrap">
+    <div className="mobile-page-wrap">
+      <MobileHeader title="消费明细" onBack={toBack} right={<Button onClick={() => openStats(ym)}>账单统计</Button>} />
+      <div className="mobile-page-content">
+        <div className="page-wrap">
       <Card className="main-card" styles={{ body: { padding: 24 } }}>
-        <div className="top-row">
-          <Typography.Title level={2} className="page-title">
-            账单清单
-          </Typography.Title>
-          <Space>
-            <Button onClick={() => openStats(ym)}>账单统计</Button>
-            <Button onClick={toBack}>返回资产总览</Button>
-          </Space>
+        <div className="ledger-month-head">
+          <Typography.Text className="ledger-month-subtitle">{ym || "--"}</Typography.Text>
+          <Button
+            className="change-action-btn"
+            loading={importing}
+            disabled={loading}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            上传明细
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            style={{ display: "none" }}
+            onChange={onCsvUploadChange}
+          />
         </div>
-        <Typography.Text className="ledger-month-subtitle">{ym || "--"}</Typography.Text>
 
         {pageState || (
           <div className="ledger-group-list">
@@ -289,6 +480,8 @@ export default function LedgerMonthPage() {
           </div>
         )}
       </Card>
+        </div>
+      </div>
     </div>
   );
 }
