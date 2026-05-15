@@ -509,6 +509,49 @@ body {
   color: #1f3a58;
 }
 
+.reconcile-page .ant-table-wrapper .ant-table-content,
+.reconcile-page .ant-table-wrapper .ant-table-body,
+.reconcile-page .ant-table-wrapper .ant-table-body-virtual {
+  overflow-x: scroll !important;
+  overflow-y: scroll !important;
+  scrollbar-color: #000 #d9d9d9;
+  scrollbar-width: auto;
+}
+
+.reconcile-page .ant-table-wrapper .ant-table-content::-webkit-scrollbar,
+.reconcile-page .ant-table-wrapper .ant-table-body::-webkit-scrollbar,
+.reconcile-page .ant-table-wrapper .ant-table-body-virtual::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.reconcile-page .ant-table-wrapper .ant-table-content::-webkit-scrollbar-thumb,
+.reconcile-page .ant-table-wrapper .ant-table-body::-webkit-scrollbar-thumb,
+.reconcile-page .ant-table-wrapper .ant-table-body-virtual::-webkit-scrollbar-thumb {
+  background: #000;
+  border-radius: 999px;
+}
+
+.reconcile-page .ant-table-wrapper .ant-table-content::-webkit-scrollbar-track,
+.reconcile-page .ant-table-wrapper .ant-table-body::-webkit-scrollbar-track,
+.reconcile-page .ant-table-wrapper .ant-table-body-virtual::-webkit-scrollbar-track {
+  background: #d9d9d9;
+}
+
+.reconcile-page .ant-table-wrapper {
+  --rc-virtual-list-scrollbar-bg: #000;
+}
+
+.reconcile-page .ant-table-wrapper .ant-table-tbody-virtual-scrollbar {
+  visibility: visible !important;
+  opacity: 1 !important;
+  background: #d9d9d9;
+}
+
+.reconcile-page .ant-table-wrapper .ant-table-tbody-virtual-scrollbar-thumb {
+  background: #000 !important;
+}
+
 @media (max-width: 960px) {
   .squirrel-layout {
     flex-direction: column !important;

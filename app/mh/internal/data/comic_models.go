@@ -57,3 +57,11 @@ type MHSyncState struct {
 }
 
 func (*MHSyncState) TableName() string { return "sync_state" }
+
+type MHStar struct {
+	OrgID     int64     `gorm:"column:org_id;type:bigint;primaryKey"`
+	CreatedAt time.Time `gorm:"column:created_at;type:timestamptz;not null;default:CURRENT_TIMESTAMP"`
+	UpdatedAt time.Time `gorm:"column:updated_at;type:timestamptz;not null;default:CURRENT_TIMESTAMP"`
+}
+
+func (*MHStar) TableName() string { return "stars" }

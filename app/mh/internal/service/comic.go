@@ -36,7 +36,7 @@ func (s *ComicService) ListBooks(ctx context.Context, req *mhv1.ListBooksRequest
 		size = 20
 	}
 
-	items, total, totalPages, err := s.uc.ListBooks(ctx, page, size)
+	items, total, totalPages, err := s.uc.ListBooks(ctx, page, size, req.GetStarredOnly())
 	if err != nil {
 		s.log.Errorf("list books failed: %v", err)
 		return nil, status.Error(codes.Internal, "list books failed")
@@ -57,6 +57,7 @@ func (s *ComicService) ListBooks(ctx context.Context, req *mhv1.ListBooksRequest
 			CoverUrl:   safeString(items[i].CoverURL),
 			UpdateTime: safeString(items[i].UpdateTime),
 			Cover:      safeStringMap(items[i].Cover),
+			Starred:    items[i].Starred,
 		})
 	}
 	return ret, nil
@@ -75,7 +76,7 @@ func (s *ComicService) ListLatest(ctx context.Context, req *mhv1.ListLatestReque
 		size = 20
 	}
 
-	items, total, totalPages, err := s.uc.ListLatest(ctx, page, size)
+	items, total, totalPages, err := s.uc.ListLatest(ctx, page, size, req.GetStarredOnly())
 	if err != nil {
 		s.log.Errorf("list latest failed: %v", err)
 		return nil, status.Error(codes.Internal, "list latest failed")
@@ -97,6 +98,7 @@ func (s *ComicService) ListLatest(ctx context.Context, req *mhv1.ListLatestReque
 			Prefix:     safeString(items[i].Prefix),
 			CoverUrl:   safeString(items[i].CoverURL),
 			UpdateTime: safeString(items[i].UpdateTime),
+			Starred:    items[i].Starred,
 		})
 	}
 	return ret, nil
@@ -176,6 +178,21 @@ func (s *ComicService) Proot(ctx context.Context, _ *mhv1.ProotRequest) (*mhv1.O
 		return nil, status.Error(codes.Internal, "proot failed")
 	}
 	return &mhv1.OperationReply{Message: "ok"}, nil
+}
+
+func (s *ComicService) SetStar(ctx context.Context, req *mhv1.SetStarRequest) (*mhv1.SetStarReply, error) {
+	if req == nil || req.GetOrgId() <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "org_id is required")
+	}
+
+	if err := s.uc.SetStar(ctx, req.GetOrgId(), req.GetStarred()); err != nil {
+		s.log.Errorf("set star failed: org_id=%d starred=%v err=%v", req.GetOrgId(), req.GetStarred(), err)
+		return nil, status.Error(codes.Internal, "set star failed")
+	}
+	return &mhv1.SetStarReply{
+		OrgId:   req.GetOrgId(),
+		Starred: req.GetStarred(),
+	}, nil
 }
 
 func safeString(s string) string {

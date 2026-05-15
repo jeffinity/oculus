@@ -1,6 +1,6 @@
 /* eslint-disable max-lines-per-function, complexity */
 import { CopyOutlined } from "@ant-design/icons";
-import { Button, Descriptions, Divider, Popover, Space, Table, Tag, Typography } from "antd";
+import { Button, Descriptions, Divider, Popconfirm, Popover, Space, Table, Tag, Typography } from "antd";
 import { useCallback, useMemo, useState } from "react";
 
 const MIN_RESIZE_COL_WIDTH = 80;
@@ -36,12 +36,12 @@ function buildSettleValues(row, settleContext, reviewOverride = null) {
     return { settleQty: 0, settleAmount: 0, refundQty: 0, refundAmount: 0, shipQty: 0, buyerPaid: 0 };
   }
   const review = reviewOverride || row.__manualReview || null;
-  const refundQty = Math.max(0, Math.floor(toNumber(review?.refundQty || review?.refund_qty || 0)));
-  const refundAmount = Math.max(0, toNumber(review?.refundAmount || review?.refund_amount || 0));
+  const refundQty = Math.trunc(toNumber(review?.refundQty || review?.refund_qty || 0));
+  const refundAmount = toNumber(review?.refundAmount || review?.refund_amount || 0);
   const shipQty = toNumber(row[`c_${settleContext.shipQtyColIndex}`] || "");
   const buyerPaid = toNumber(row[`c_${settleContext.buyerPaidColIndex}`] || "");
   const settleQty = shipQty - refundQty;
-  const settleAmount = shipQty === 0 ? 0 : buyerPaid - refundAmount;
+  const settleAmount = buyerPaid - refundAmount;
   return { settleQty, settleAmount };
 }
 
@@ -151,10 +151,11 @@ function buildMatchPopoverContent(matches = []) {
   );
 }
 
-function buildManualReviewPopoverContent(review, settleValues) {
+function buildManualReviewPopoverContent(review, settleValues, onDeleteManualReview, record) {
   if (!review) return null;
   const reviewType = (review.reviewType || review.review_type || "MANUAL").toUpperCase();
   const remark = String(review.remark || "").trim();
+  const showDeleteAction = Boolean(onDeleteManualReview && record && reviewType === "MANUAL");
   return (
     <Descriptions size="small" bordered column={1} className="match-popover-desc">
       <Descriptions.Item label="核查类型">{reviewType === "AUTO" ? "自动核查" : "人工核查"}</Descriptions.Item>
@@ -165,8 +166,39 @@ function buildManualReviewPopoverContent(review, settleValues) {
       <Descriptions.Item label="备注">{remark || "-"}</Descriptions.Item>
       <Descriptions.Item label="状态">{review.ignored ? "已忽略" : "已核查"}</Descriptions.Item>
       <Descriptions.Item label="更新时间">{review.updatedAt || "-"}</Descriptions.Item>
+      {showDeleteAction ? (
+        <Descriptions.Item label="操作">
+          <Popconfirm
+            title="删除该条人工核查记录？"
+            okText="删除"
+            cancelText="取消"
+            okButtonProps={{ danger: true }}
+            onConfirm={() => onDeleteManualReview(record)}
+          >
+            <Button size="small" danger>
+              删除人工核查
+            </Button>
+          </Popconfirm>
+        </Descriptions.Item>
+      ) : null}
     </Descriptions>
   );
+}
+
+function buildManualReviewMeta(record, settleContext, onDeleteManualReview) {
+  const manualReview = record.__manualReview || null;
+  const settleValues = buildSettleValues(record, settleContext);
+  const reviewPopoverContent = buildManualReviewPopoverContent(manualReview, settleValues, onDeleteManualReview, record);
+  const reviewType = (manualReview?.reviewType || manualReview?.review_type || "MANUAL").toUpperCase();
+  const reviewLabel = reviewType === "AUTO" ? "自动核查" : "人工核查";
+  const reviewColor = reviewType === "AUTO" ? "gold" : "green";
+  return {
+    manualReview,
+    reviewPopoverContent,
+    reviewLabel,
+    reviewColor,
+    reviewType
+  };
 }
 
 function ResizableHeaderCell(props) {
@@ -210,6 +242,7 @@ function OrderNoCopyText({ value, onCopy }) {
 
 function buildReconcileResultColumns({
   amountCheckMap,
+  onDeleteManualReview,
   onOpenManualReview,
   salesColumns,
   settleContext
@@ -232,12 +265,7 @@ function buildReconcileResultColumns({
       render: (_, record) => {
         const matches = record.__matches || [];
         if (matches.length === 0) {
-          const manualReview = record.__manualReview || null;
-          const settleValues = buildSettleValues(record, settleContext);
-          const reviewPopoverContent = buildManualReviewPopoverContent(manualReview, settleValues);
-          const reviewType = (manualReview?.reviewType || manualReview?.review_type || "MANUAL").toUpperCase();
-          const reviewLabel = reviewType === "AUTO" ? "自动核查" : "人工核查";
-          const reviewColor = reviewType === "AUTO" ? "gold" : "green";
+          const { manualReview, reviewPopoverContent, reviewLabel, reviewColor } = buildManualReviewMeta(record, settleContext, onDeleteManualReview);
           return (
             <Space size={6}>
               {manualReview ? (
@@ -261,6 +289,8 @@ function buildReconcileResultColumns({
         const content = buildMatchPopoverContent(matches);
         const amountCheck = amountCheckMap?.get(record.key) || null;
         const amountCheckContent = buildAmountCheckPopoverContent(amountCheck);
+        const { manualReview, reviewPopoverContent, reviewLabel, reviewColor } = buildManualReviewMeta(record, settleContext, onDeleteManualReview);
+        const showManualReviewButton = Boolean(amountCheck && !amountCheck.consistent);
         return (
           <Space size={[4, 4]} wrap>
             <Popover content={content} trigger="hover" placement="rightTop">
@@ -276,6 +306,16 @@ function buildReconcileResultColumns({
                   {amountCheck.consistent ? "核算金额一致" : "核算金额不一致"}
                 </Tag>
               </Popover>
+            ) : null}
+            {manualReview ? (
+              <Popover content={reviewPopoverContent} trigger="hover" placement="rightTop">
+                <Tag color={reviewColor}>{reviewLabel}</Tag>
+              </Popover>
+            ) : null}
+            {showManualReviewButton ? (
+              <Button type="primary" size="small" onClick={() => onOpenManualReview(record)}>
+                {manualReview ? "修改人工核查" : "人工核查"}
+              </Button>
             ) : null}
           </Space>
         );
@@ -334,6 +374,7 @@ export default function ReconcileResultsTable({
   amountCheckMap,
   filteredRows,
   onCopyOrderNo,
+  onDeleteManualReview,
   onOpenManualReview,
   salesColumns,
   salesOrderNoColIndex,
@@ -365,6 +406,7 @@ export default function ReconcileResultsTable({
     () =>
       buildReconcileResultColumns({
         amountCheckMap,
+        onDeleteManualReview,
         onOpenManualReview,
         salesColumns,
         salesOrderNoColIndex,
@@ -386,7 +428,7 @@ export default function ReconcileResultsTable({
           })
         };
       }),
-    [amountCheckMap, columnWidths, onCopyOrderNo, onOpenManualReview, salesColumns, salesOrderNoColIndex, settleContext, startColumnResize]
+    [amountCheckMap, columnWidths, onCopyOrderNo, onDeleteManualReview, onOpenManualReview, salesColumns, salesOrderNoColIndex, settleContext, startColumnResize]
   );
 
   const tableComponents = useMemo(

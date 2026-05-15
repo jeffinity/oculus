@@ -470,6 +470,18 @@ func (r *SquirrelRepo) ClearManualReviewsByTask(ctx context.Context, taskID stri
 		Delete(&SquirrelManualReview{}).Error
 }
 
+func (r *SquirrelRepo) DeleteManualReviewByRow(ctx context.Context, taskID, filename string, rowNo int32) error {
+	return r.data.pg.WithContext(ctx).
+		Where(
+			"task_id = ? AND filename = ? AND row_no = ? AND review_type = ?",
+			strings.TrimSpace(taskID),
+			strings.TrimSpace(filename),
+			rowNo,
+			ManualReviewTypeManual,
+		).
+		Delete(&SquirrelManualReview{}).Error
+}
+
 func (r *SquirrelRepo) ListManualReviewsByRows(ctx context.Context, taskID string, rows []ReconcileRowData) (map[string]SquirrelManualReview, error) {
 	if len(rows) == 0 {
 		return map[string]SquirrelManualReview{}, nil

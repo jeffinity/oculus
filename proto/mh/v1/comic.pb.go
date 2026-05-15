@@ -26,6 +26,7 @@ type ListBooksRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Page          int32                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`
 	Size          int32                  `protobuf:"varint,2,opt,name=size,proto3" json:"size,omitempty"`
+	StarredOnly   bool                   `protobuf:"varint,3,opt,name=starred_only,json=starredOnly,proto3" json:"starred_only,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -72,6 +73,13 @@ func (x *ListBooksRequest) GetSize() int32 {
 		return x.Size
 	}
 	return 0
+}
+
+func (x *ListBooksRequest) GetStarredOnly() bool {
+	if x != nil {
+		return x.StarredOnly
+	}
+	return false
 }
 
 type ListBooksReply struct {
@@ -158,6 +166,7 @@ type BookListItem struct {
 	CoverUrl      string                 `protobuf:"bytes,4,opt,name=cover_url,json=coverUrl,proto3" json:"cover_url,omitempty"`
 	UpdateTime    string                 `protobuf:"bytes,5,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
 	Cover         map[string]string      `protobuf:"bytes,6,rep,name=cover,proto3" json:"cover,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Starred       bool                   `protobuf:"varint,7,opt,name=starred,proto3" json:"starred,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -234,10 +243,18 @@ func (x *BookListItem) GetCover() map[string]string {
 	return nil
 }
 
+func (x *BookListItem) GetStarred() bool {
+	if x != nil {
+		return x.Starred
+	}
+	return false
+}
+
 type ListLatestRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Page          int32                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`
 	Size          int32                  `protobuf:"varint,2,opt,name=size,proto3" json:"size,omitempty"`
+	StarredOnly   bool                   `protobuf:"varint,3,opt,name=starred_only,json=starredOnly,proto3" json:"starred_only,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -284,6 +301,13 @@ func (x *ListLatestRequest) GetSize() int32 {
 		return x.Size
 	}
 	return 0
+}
+
+func (x *ListLatestRequest) GetStarredOnly() bool {
+	if x != nil {
+		return x.StarredOnly
+	}
+	return false
 }
 
 type ListLatestReply struct {
@@ -371,6 +395,7 @@ type LatestListItem struct {
 	Prefix        string                 `protobuf:"bytes,5,opt,name=prefix,proto3" json:"prefix,omitempty"`
 	CoverUrl      string                 `protobuf:"bytes,6,opt,name=cover_url,json=coverUrl,proto3" json:"cover_url,omitempty"`
 	UpdateTime    string                 `protobuf:"bytes,7,opt,name=update_time,json=updateTime,proto3" json:"update_time,omitempty"`
+	Starred       bool                   `protobuf:"varint,8,opt,name=starred,proto3" json:"starred,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -452,6 +477,13 @@ func (x *LatestListItem) GetUpdateTime() string {
 		return x.UpdateTime
 	}
 	return ""
+}
+
+func (x *LatestListItem) GetStarred() bool {
+	if x != nil {
+		return x.Starred
+	}
+	return false
 }
 
 type GetBookRequest struct {
@@ -910,21 +942,126 @@ func (x *OperationReply) GetMessage() string {
 	return ""
 }
 
+type SetStarRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	OrgId         int64                  `protobuf:"varint,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Starred       bool                   `protobuf:"varint,2,opt,name=starred,proto3" json:"starred,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetStarRequest) Reset() {
+	*x = SetStarRequest{}
+	mi := &file_api_mh_v1_comic_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetStarRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetStarRequest) ProtoMessage() {}
+
+func (x *SetStarRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_mh_v1_comic_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetStarRequest.ProtoReflect.Descriptor instead.
+func (*SetStarRequest) Descriptor() ([]byte, []int) {
+	return file_api_mh_v1_comic_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *SetStarRequest) GetOrgId() int64 {
+	if x != nil {
+		return x.OrgId
+	}
+	return 0
+}
+
+func (x *SetStarRequest) GetStarred() bool {
+	if x != nil {
+		return x.Starred
+	}
+	return false
+}
+
+type SetStarReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	OrgId         int64                  `protobuf:"varint,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Starred       bool                   `protobuf:"varint,2,opt,name=starred,proto3" json:"starred,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetStarReply) Reset() {
+	*x = SetStarReply{}
+	mi := &file_api_mh_v1_comic_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetStarReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetStarReply) ProtoMessage() {}
+
+func (x *SetStarReply) ProtoReflect() protoreflect.Message {
+	mi := &file_api_mh_v1_comic_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetStarReply.ProtoReflect.Descriptor instead.
+func (*SetStarReply) Descriptor() ([]byte, []int) {
+	return file_api_mh_v1_comic_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *SetStarReply) GetOrgId() int64 {
+	if x != nil {
+		return x.OrgId
+	}
+	return 0
+}
+
+func (x *SetStarReply) GetStarred() bool {
+	if x != nil {
+		return x.Starred
+	}
+	return false
+}
+
 var File_api_mh_v1_comic_proto protoreflect.FileDescriptor
 
 const file_api_mh_v1_comic_proto_rawDesc = "" +
 	"\n" +
-	"\x15api/mh/v1/comic.proto\x12\tapi.mh.v1\x1a\x1cgoogle/api/annotations.proto\":\n" +
+	"\x15api/mh/v1/comic.proto\x12\tapi.mh.v1\x1a\x1cgoogle/api/annotations.proto\"]\n" +
 	"\x10ListBooksRequest\x12\x12\n" +
 	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x12\n" +
-	"\x04size\x18\x02 \x01(\x05R\x04size\"\x9e\x01\n" +
+	"\x04size\x18\x02 \x01(\x05R\x04size\x12!\n" +
+	"\fstarred_only\x18\x03 \x01(\bR\vstarredOnly\"\x9e\x01\n" +
 	"\x0eListBooksReply\x12\x12\n" +
 	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x12\n" +
 	"\x04size\x18\x02 \x01(\x05R\x04size\x12\x14\n" +
 	"\x05total\x18\x03 \x01(\x03R\x05total\x12\x1f\n" +
 	"\vtotal_pages\x18\x04 \x01(\x05R\n" +
 	"totalPages\x12-\n" +
-	"\x05items\x18\x05 \x03(\v2\x17.api.mh.v1.BookListItemR\x05items\"\x81\x02\n" +
+	"\x05items\x18\x05 \x03(\v2\x17.api.mh.v1.BookListItemR\x05items\"\x9b\x02\n" +
 	"\fBookListItem\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12\x15\n" +
 	"\x06org_id\x18\x02 \x01(\x03R\x05orgId\x12\x12\n" +
@@ -932,21 +1069,23 @@ const file_api_mh_v1_comic_proto_rawDesc = "" +
 	"\tcover_url\x18\x04 \x01(\tR\bcoverUrl\x12\x1f\n" +
 	"\vupdate_time\x18\x05 \x01(\tR\n" +
 	"updateTime\x128\n" +
-	"\x05cover\x18\x06 \x03(\v2\".api.mh.v1.BookListItem.CoverEntryR\x05cover\x1a8\n" +
+	"\x05cover\x18\x06 \x03(\v2\".api.mh.v1.BookListItem.CoverEntryR\x05cover\x12\x18\n" +
+	"\astarred\x18\a \x01(\bR\astarred\x1a8\n" +
 	"\n" +
 	"CoverEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\";\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"^\n" +
 	"\x11ListLatestRequest\x12\x12\n" +
 	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x12\n" +
-	"\x04size\x18\x02 \x01(\x05R\x04size\"\xa1\x01\n" +
+	"\x04size\x18\x02 \x01(\x05R\x04size\x12!\n" +
+	"\fstarred_only\x18\x03 \x01(\bR\vstarredOnly\"\xa1\x01\n" +
 	"\x0fListLatestReply\x12\x12\n" +
 	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x12\n" +
 	"\x04size\x18\x02 \x01(\x05R\x04size\x12\x14\n" +
 	"\x05total\x18\x03 \x01(\x03R\x05total\x12\x1f\n" +
 	"\vtotal_pages\x18\x04 \x01(\x05R\n" +
 	"totalPages\x12/\n" +
-	"\x05items\x18\x05 \x03(\v2\x19.api.mh.v1.LatestListItemR\x05items\"\xbb\x01\n" +
+	"\x05items\x18\x05 \x03(\v2\x19.api.mh.v1.LatestListItemR\x05items\"\xd5\x01\n" +
 	"\x0eLatestListItem\x12\x14\n" +
 	"\x05cname\x18\x01 \x01(\tR\x05cname\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x15\n" +
@@ -955,7 +1094,8 @@ const file_api_mh_v1_comic_proto_rawDesc = "" +
 	"\x06prefix\x18\x05 \x01(\tR\x06prefix\x12\x1b\n" +
 	"\tcover_url\x18\x06 \x01(\tR\bcoverUrl\x12\x1f\n" +
 	"\vupdate_time\x18\a \x01(\tR\n" +
-	"updateTime\"'\n" +
+	"updateTime\x12\x18\n" +
+	"\astarred\x18\b \x01(\bR\astarred\"'\n" +
 	"\x0eGetBookRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\x03R\x05orgId\"\x8a\x01\n" +
 	"\fGetBookReply\x12+\n" +
@@ -985,7 +1125,13 @@ const file_api_mh_v1_comic_proto_rawDesc = "" +
 	"\vSyncRequest\"\x0e\n" +
 	"\fProotRequest\"*\n" +
 	"\x0eOperationReply\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage2\xbf\x04\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"A\n" +
+	"\x0eSetStarRequest\x12\x15\n" +
+	"\x06org_id\x18\x01 \x01(\x03R\x05orgId\x12\x18\n" +
+	"\astarred\x18\x02 \x01(\bR\astarred\"?\n" +
+	"\fSetStarReply\x12\x15\n" +
+	"\x06org_id\x18\x01 \x01(\x03R\x05orgId\x12\x18\n" +
+	"\astarred\x18\x02 \x01(\bR\astarred2\x9a\x05\n" +
 	"\x0eMHComicService\x12]\n" +
 	"\tListBooks\x12\x1b.api.mh.v1.ListBooksRequest\x1a\x19.api.mh.v1.ListBooksReply\"\x18\x82\xd3\xe4\x93\x02\x12\x12\x10/api/v1/mh/books\x12a\n" +
 	"\n" +
@@ -994,7 +1140,8 @@ const file_api_mh_v1_comic_proto_rawDesc = "" +
 	"\n" +
 	"GetChapter\x12\x1c.api.mh.v1.GetChapterRequest\x1a\x1a.api.mh.v1.GetChapterReply\"\x1a\x82\xd3\xe4\x93\x02\x14\x12\x12/api/v1/mh/chapter\x12U\n" +
 	"\x04Sync\x12\x16.api.mh.v1.SyncRequest\x1a\x19.api.mh.v1.OperationReply\"\x1a\x82\xd3\xe4\x93\x02\x14:\x01*\"\x0f/api/v1/mh/sync\x12X\n" +
-	"\x05Proot\x12\x17.api.mh.v1.ProotRequest\x1a\x19.api.mh.v1.OperationReply\"\x1b\x82\xd3\xe4\x93\x02\x15:\x01*\"\x10/api/v1/mh/prootB\x8d\x01\n" +
+	"\x05Proot\x12\x17.api.mh.v1.ProotRequest\x1a\x19.api.mh.v1.OperationReply\"\x1b\x82\xd3\xe4\x93\x02\x15:\x01*\"\x10/api/v1/mh/proot\x12Y\n" +
+	"\aSetStar\x12\x19.api.mh.v1.SetStarRequest\x1a\x17.api.mh.v1.SetStarReply\"\x1a\x82\xd3\xe4\x93\x02\x14:\x01*\"\x0f/api/v1/mh/starB\x8d\x01\n" +
 	"\rcom.api.mh.v1B\n" +
 	"ComicProtoP\x01Z*github.com/jeffinity/oculus/proto/mh/v1;v1\xa2\x02\x03AMX\xaa\x02\tApi.Mh.V1\xca\x02\tApi\\Mh\\V1\xe2\x02\x15Api\\Mh\\V1\\GPBMetadata\xea\x02\vApi::Mh::V1b\x06proto3"
 
@@ -1010,7 +1157,7 @@ func file_api_mh_v1_comic_proto_rawDescGZIP() []byte {
 	return file_api_mh_v1_comic_proto_rawDescData
 }
 
-var file_api_mh_v1_comic_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_api_mh_v1_comic_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_api_mh_v1_comic_proto_goTypes = []any{
 	(*ListBooksRequest)(nil),  // 0: api.mh.v1.ListBooksRequest
 	(*ListBooksReply)(nil),    // 1: api.mh.v1.ListBooksReply
@@ -1026,11 +1173,13 @@ var file_api_mh_v1_comic_proto_goTypes = []any{
 	(*SyncRequest)(nil),       // 11: api.mh.v1.SyncRequest
 	(*ProotRequest)(nil),      // 12: api.mh.v1.ProotRequest
 	(*OperationReply)(nil),    // 13: api.mh.v1.OperationReply
-	nil,                       // 14: api.mh.v1.BookListItem.CoverEntry
+	(*SetStarRequest)(nil),    // 14: api.mh.v1.SetStarRequest
+	(*SetStarReply)(nil),      // 15: api.mh.v1.SetStarReply
+	nil,                       // 16: api.mh.v1.BookListItem.CoverEntry
 }
 var file_api_mh_v1_comic_proto_depIdxs = []int32{
 	2,  // 0: api.mh.v1.ListBooksReply.items:type_name -> api.mh.v1.BookListItem
-	14, // 1: api.mh.v1.BookListItem.cover:type_name -> api.mh.v1.BookListItem.CoverEntry
+	16, // 1: api.mh.v1.BookListItem.cover:type_name -> api.mh.v1.BookListItem.CoverEntry
 	5,  // 2: api.mh.v1.ListLatestReply.items:type_name -> api.mh.v1.LatestListItem
 	2,  // 3: api.mh.v1.GetBookReply.book:type_name -> api.mh.v1.BookListItem
 	8,  // 4: api.mh.v1.GetBookReply.chapters:type_name -> api.mh.v1.ChapterMeta
@@ -1040,14 +1189,16 @@ var file_api_mh_v1_comic_proto_depIdxs = []int32{
 	9,  // 8: api.mh.v1.MHComicService.GetChapter:input_type -> api.mh.v1.GetChapterRequest
 	11, // 9: api.mh.v1.MHComicService.Sync:input_type -> api.mh.v1.SyncRequest
 	12, // 10: api.mh.v1.MHComicService.Proot:input_type -> api.mh.v1.ProotRequest
-	1,  // 11: api.mh.v1.MHComicService.ListBooks:output_type -> api.mh.v1.ListBooksReply
-	4,  // 12: api.mh.v1.MHComicService.ListLatest:output_type -> api.mh.v1.ListLatestReply
-	7,  // 13: api.mh.v1.MHComicService.GetBook:output_type -> api.mh.v1.GetBookReply
-	10, // 14: api.mh.v1.MHComicService.GetChapter:output_type -> api.mh.v1.GetChapterReply
-	13, // 15: api.mh.v1.MHComicService.Sync:output_type -> api.mh.v1.OperationReply
-	13, // 16: api.mh.v1.MHComicService.Proot:output_type -> api.mh.v1.OperationReply
-	11, // [11:17] is the sub-list for method output_type
-	5,  // [5:11] is the sub-list for method input_type
+	14, // 11: api.mh.v1.MHComicService.SetStar:input_type -> api.mh.v1.SetStarRequest
+	1,  // 12: api.mh.v1.MHComicService.ListBooks:output_type -> api.mh.v1.ListBooksReply
+	4,  // 13: api.mh.v1.MHComicService.ListLatest:output_type -> api.mh.v1.ListLatestReply
+	7,  // 14: api.mh.v1.MHComicService.GetBook:output_type -> api.mh.v1.GetBookReply
+	10, // 15: api.mh.v1.MHComicService.GetChapter:output_type -> api.mh.v1.GetChapterReply
+	13, // 16: api.mh.v1.MHComicService.Sync:output_type -> api.mh.v1.OperationReply
+	13, // 17: api.mh.v1.MHComicService.Proot:output_type -> api.mh.v1.OperationReply
+	15, // 18: api.mh.v1.MHComicService.SetStar:output_type -> api.mh.v1.SetStarReply
+	12, // [12:19] is the sub-list for method output_type
+	5,  // [5:12] is the sub-list for method input_type
 	5,  // [5:5] is the sub-list for extension type_name
 	5,  // [5:5] is the sub-list for extension extendee
 	0,  // [0:5] is the sub-list for field type_name
@@ -1064,7 +1215,7 @@ func file_api_mh_v1_comic_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_mh_v1_comic_proto_rawDesc), len(file_api_mh_v1_comic_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

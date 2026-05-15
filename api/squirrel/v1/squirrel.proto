@@ -77,6 +77,13 @@ service SquirrelService {
     };
   }
 
+  rpc DeleteManualReview(DeleteManualReviewRequest) returns (DeleteManualReviewReply) {
+    option (google.api.http) = {
+      post: "/api/v1/squirrel/tasks/{task_id}/manual-reviews:delete"
+      body: "*"
+    };
+  }
+
   rpc ListManualRemarkOptions(ListManualRemarkOptionsRequest) returns (ListManualRemarkOptionsReply) {
     option (google.api.http) = {
       get: "/api/v1/squirrel/tasks/{task_id}/manual-remark-options"
@@ -205,6 +212,16 @@ message ClearManualReviewsRequest {
 }
 
 message ClearManualReviewsReply {
+  bool success = 1;
+}
+
+message DeleteManualReviewRequest {
+  string task_id = 1;
+  string filename = 2;
+  uint32 row_no = 3;
+}
+
+message DeleteManualReviewReply {
   bool success = 1;
 }
 

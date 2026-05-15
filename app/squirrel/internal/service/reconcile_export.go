@@ -250,8 +250,8 @@ func buildExportSupplementValues(row data.ReconcileRowData, shipQtyColIndex, buy
 	refundAmount := 0.0
 	remark := "无"
 	if row.ManualReview != nil && strings.EqualFold(strings.TrimSpace(row.ManualReview.ReviewType), data.ManualReviewTypeManual) {
-		refundQty = maxInt64(0, parseInt64(row.ManualReview.RefundQty))
-		refundAmount = maxFloat64(0, toNumber(row.ManualReview.RefundAmount))
+		refundQty = parseInt64(row.ManualReview.RefundQty)
+		refundAmount = toNumber(row.ManualReview.RefundAmount)
 		if text := strings.TrimSpace(row.ManualReview.Remark); text != "" {
 			remark = text
 		}
@@ -275,16 +275,13 @@ func buildExportSettleValues(row data.ReconcileRowData, shipQtyColIndex, buyerPa
 	refundQty := int64(0)
 	refundAmount := 0.0
 	if review != nil {
-		refundQty = maxInt64(0, parseInt64(review.RefundQty))
-		refundAmount = maxFloat64(0, toNumber(review.RefundAmount))
+		refundQty = parseInt64(review.RefundQty)
+		refundAmount = toNumber(review.RefundAmount)
 	}
 	shipQty := maxInt64(0, parseInt64(valueAt(row.Values, shipQtyColIndex)))
 	buyerPaid := toNumber(valueAt(row.Values, buyerPaidColIndex))
 	settleQty := shipQty - refundQty
-	settleAmount := 0.0
-	if shipQty > 0 {
-		settleAmount = buyerPaid - refundAmount
-	}
+	settleAmount := buyerPaid - refundAmount
 	return exportSettleValues{
 		SettleQty:    settleQty,
 		SettleAmount: settleAmount,
@@ -388,13 +385,6 @@ func parseInt64(value string) int64 {
 }
 
 func maxInt64(a, b int64) int64 {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-func maxFloat64(a, b float64) float64 {
 	if a > b {
 		return a
 	}

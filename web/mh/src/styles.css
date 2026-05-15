@@ -93,6 +93,20 @@ img {
   scrollbar-width: none;
 }
 
+.tab-star-filter {
+  margin-left: auto;
+  padding: 0 4px 8px;
+  color: rgba(23, 23, 23, 0.56);
+  background: transparent;
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.tab-star-filter.active {
+  color: #f3b200;
+}
+
 .mode-tabs::-webkit-scrollbar {
   display: none;
 }
@@ -149,11 +163,33 @@ img {
 }
 
 .book-card {
+  position: relative;
   padding: 0;
   border: 0;
   background: transparent;
   text-align: left;
   cursor: pointer;
+}
+
+.item-star {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  background: rgba(0, 0, 0, 0.52);
+  color: #fff;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.item-star.active {
+  color: #f3b200;
 }
 
 .cover-frame {
@@ -225,6 +261,11 @@ img {
 
 .latest-cover-wrap {
   position: relative;
+}
+
+.latest-star {
+  top: 10px;
+  right: 10px;
 }
 
 .badge-spot {
@@ -536,96 +577,47 @@ img {
   background: #121212;
 }
 
-.reader-images-button {
-  display: block;
-  width: 100%;
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
-
 .reader-images img {
   width: 100%;
   background: #121212;
 }
 
-.reader-topbar,
-.reader-bottombar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  z-index: 20;
-  display: grid;
-  align-items: center;
-  gap: 12px;
-  padding-left: max(16px, env(safe-area-inset-left));
-  padding-right: max(16px, env(safe-area-inset-right));
-  background: rgba(18, 18, 18, 0.48);
-  backdrop-filter: blur(14px);
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
-}
-
 .reader-topbar {
-  top: 0;
-  grid-template-columns: auto 1fr auto;
-  padding-top: calc(env(safe-area-inset-top) + 10px);
-  padding-bottom: 10px;
-}
-
-.reader-topbar h1 {
-  margin: 0;
-  color: #fff;
-  font-size: 1rem;
-  font-weight: 700;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.reader-bottombar {
-  bottom: 0;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  padding-top: 10px;
-  padding-bottom: calc(env(safe-area-inset-bottom) + 14px);
-}
-
-.reader-topbar.hidden,
-.reader-bottombar.hidden {
-  opacity: 0;
+  position: fixed;
+  left: max(10px, env(safe-area-inset-left));
+  right: max(10px, env(safe-area-inset-right));
+  top: calc(env(safe-area-inset-top) + 8px);
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   pointer-events: none;
 }
 
-.reader-topbar.hidden {
-  transform: translateY(-100%);
-}
-
-.reader-bottombar.hidden {
-  transform: translateY(100%);
-}
-
-.reader-topbar.visible,
-.reader-bottombar.visible {
-  opacity: 1;
-  transform: translateY(0);
+.reader-bottombar {
+  position: fixed;
+  z-index: 21;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  bottom: calc(env(safe-area-inset-bottom) + 14px);
 }
 
 .reader-icon-button,
 .reader-nav-button {
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #fff;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(8px);
 }
 
 .reader-icon-button {
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
+  width: 34px;
+  height: 34px;
   border-radius: 999px;
+  pointer-events: auto;
 }
 
 .reader-icon-button.home {
@@ -633,10 +625,10 @@ img {
 }
 
 .reader-icon-button .hero-back-icon {
-  width: 10px;
-  height: 10px;
-  border-top-width: 2px;
-  border-left-width: 2px;
+  width: 9px;
+  height: 9px;
+  border-top-width: 1.5px;
+  border-left-width: 1.5px;
 }
 
 .home-icon {
@@ -644,9 +636,9 @@ img {
   flex: 0 0 auto;
   box-sizing: border-box;
   position: relative;
-  width: 14px;
-  height: 10px;
-  border: 2px solid #fff;
+  width: 12px;
+  height: 8px;
+  border: 1.5px solid #fff;
   border-top: 0;
   border-radius: 2px 2px 3px 3px;
   transform: translateY(2px);
@@ -657,39 +649,60 @@ img {
   position: absolute;
   left: 50%;
   top: -4px;
-  width: 8px;
-  height: 8px;
-  border-top: 2px solid #fff;
-  border-left: 2px solid #fff;
+  width: 7px;
+  height: 7px;
+  border-top: 1.5px solid #fff;
+  border-left: 1.5px solid #fff;
   transform: translateX(-50%) rotate(45deg);
   background: transparent;
 }
 
 .reader-nav-button {
-  width: 100%;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 44px;
   min-width: 0;
-  padding: 12px 18px;
+  padding: 0;
   border-radius: 999px;
   font-weight: 700;
+  font-size: 1rem;
 }
 
 .reader-nav-button:disabled {
-  opacity: 0.35;
+  opacity: 1;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.reader-bottombar.side-left {
+  left: max(12px, env(safe-area-inset-left));
+}
+
+.reader-bottombar.side-right {
+  right: max(12px, env(safe-area-inset-right));
 }
 
 .reader-page-indicator {
-  width: 100%;
-  padding: 11px 14px;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  min-height: 58px;
+  padding: 8px 6px;
   border-radius: 999px;
   text-align: center;
   color: rgba(255, 255, 255, 0.9);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.12);
   font-weight: 700;
+  font-size: 0.8rem;
+  line-height: 1.15;
+  white-space: nowrap;
 }
 
 .reader-page-indicator:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.7);
 }
 
 .reader-state {
@@ -720,28 +733,9 @@ img {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .reader-topbar,
-  .reader-bottombar {
-    left: 50%;
-    right: auto;
-    width: min(100%, 920px);
-    transform: translateX(-50%);
-  }
-
-  .reader-topbar.hidden {
-    transform: translate(-50%, -100%);
-  }
-
-  .reader-topbar.visible {
-    transform: translate(-50%, 0);
-  }
-
-  .reader-bottombar.hidden {
-    transform: translate(-50%, 100%);
-  }
-
-  .reader-bottombar.visible {
-    transform: translate(-50%, 0);
+  .reader-topbar {
+    left: max(20px, env(safe-area-inset-left));
+    right: max(20px, env(safe-area-inset-right));
   }
 }
 
@@ -798,11 +792,13 @@ img {
   }
 
   .reader-nav-button {
-    min-width: 84px;
-    padding-inline: 14px;
+    width: 48px;
+    height: 40px;
   }
 
-  .reader-topbar h1 {
-    font-size: 0.94rem;
+  .reader-page-indicator {
+    width: 56px;
+    min-height: 54px;
+    font-size: 0.75rem;
   }
 }

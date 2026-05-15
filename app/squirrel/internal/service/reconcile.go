@@ -391,8 +391,8 @@ func buildWechatMatchMap(
 	rows []data.SquirrelSectionRowData,
 	out map[string][]reconcileMatchItem,
 ) error {
-	idxOrderNo := findColumnIndexForReconcile(columns, []string{"淘宝订单编号"})
-	idxIncomeType := findColumnIndexForReconcile(columns, []string{"入账类型"})
+	idxOrderNo := findColumnIndexForReconcile(columns, []string{"淘宝订单编号", "主订单id"})
+	idxIncomeType := findColumnIndexForReconcile(columns, []string{"入账类型", "入帐类型"})
 	if idxOrderNo < 0 || idxIncomeType < 0 {
 		return fmt.Errorf("missing wechat key columns")
 	}
@@ -877,6 +877,29 @@ func (s *SquirrelService) ClearManualReviews(ctx context.Context, req *squirrelv
 		return nil, status.Error(codes.Internal, "clear manual reviews failed")
 	}
 	return &squirrelv1.ClearManualReviewsReply{Success: true}, nil
+}
+
+func (s *SquirrelService) DeleteManualReview(ctx context.Context, req *squirrelv1.DeleteManualReviewRequest) (*squirrelv1.DeleteManualReviewReply, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request is required")
+	}
+	taskID := strings.TrimSpace(req.GetTaskId())
+	if taskID == "" {
+		return nil, status.Error(codes.InvalidArgument, "task_id is required")
+	}
+	filename := strings.TrimSpace(req.GetFilename())
+	if filename == "" {
+		return nil, status.Error(codes.InvalidArgument, "filename is required")
+	}
+	rowNo := int32(req.GetRowNo())
+	if rowNo <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "row_no is required")
+	}
+	if err := s.repo.DeleteManualReviewByRow(ctx, taskID, filename, rowNo); err != nil {
+		s.log.Errorf("delete manual review failed task_id=%s filename=%s row_no=%d err=%v", taskID, filename, rowNo, err)
+		return nil, status.Error(codes.Internal, "delete manual review failed")
+	}
+	return &squirrelv1.DeleteManualReviewReply{Success: true}, nil
 }
 
 func (s *SquirrelService) ListManualRemarkOptions(ctx context.Context, req *squirrelv1.ListManualRemarkOptionsRequest) (*squirrelv1.ListManualRemarkOptionsReply, error) {

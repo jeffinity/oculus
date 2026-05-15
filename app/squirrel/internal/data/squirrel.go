@@ -198,7 +198,13 @@ func (r *SquirrelRepo) ListSectionImports(ctx context.Context, taskID, section s
 	return items, err
 }
 
-func (r *SquirrelRepo) SaveSectionFile(ctx context.Context, taskID, section, filename, sheetName string, header []string, rows []ParsedRow, replaceOld bool) (*SquirrelSectionImport, error) {
+func (r *SquirrelRepo) SaveSectionFile(
+	ctx context.Context,
+	taskID, section, filename, sheetName string,
+	header []string,
+	rows []ParsedRow,
+	replaceOld bool,
+) (*SquirrelSectionImport, error) {
 	if section == "sales" {
 		// 强制销售明细单文件模式：新文件覆盖旧文件。
 		replaceOld = true

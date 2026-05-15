@@ -509,6 +509,7 @@ func buildRequiredColumnIndexes(section string, header []string) []int {
 	case "wechat":
 		return pickRequiredColumns(header, [][]string{
 			{"淘宝订单编号"},
+			{"入账类型", "入帐类型"},
 		})
 	case "alipay":
 		return pickRequiredColumns(header, [][]string{

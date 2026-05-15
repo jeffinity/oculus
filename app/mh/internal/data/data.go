@@ -38,6 +38,7 @@ func NewAllMigrator(data *Data) *migratex.Migrator {
 		&MHHistory{},
 		&MHProofHistory{},
 		&MHSyncState{},
+		&MHStar{},
 	})
 }
 

@@ -51,11 +51,20 @@ service MHComicService {
       body: "*"
     };
   }
+
+  // 设置漫画星标
+  rpc SetStar(SetStarRequest) returns (SetStarReply) {
+    option (google.api.http) = {
+      post: "/api/v1/mh/star"
+      body: "*"
+    };
+  }
 }
 
 message ListBooksRequest {
   int32 page = 1;
   int32 size = 2;
+  bool starred_only = 3;
 }
 
 message ListBooksReply {
@@ -73,11 +82,13 @@ message BookListItem {
   string cover_url = 4;
   string update_time = 5;
   map<string, string> cover = 6;
+  bool starred = 7;
 }
 
 message ListLatestRequest {
   int32 page = 1;
   int32 size = 2;
+  bool starred_only = 3;
 }
 
 message ListLatestReply {
@@ -96,6 +107,7 @@ message LatestListItem {
   string prefix = 5;
   string cover_url = 6;
   string update_time = 7;
+  bool starred = 8;
 }
 
 message GetBookRequest {
@@ -139,4 +151,14 @@ message ProotRequest {}
 
 message OperationReply {
   string message = 1;
+}
+
+message SetStarRequest {
+  int64 org_id = 1;
+  bool starred = 2;
+}
+
+message SetStarReply {
+  int64 org_id = 1;
+  bool starred = 2;
 }

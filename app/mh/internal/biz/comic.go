@@ -22,14 +22,15 @@ import (
 )
 
 type ComicRepo interface {
-	ListBooks(ctx context.Context, page, size int) ([]Book, int64, error)
+	ListBooks(ctx context.Context, page, size int, starredOnly bool) ([]Book, int64, error)
 	FindBookByOrgID(ctx context.Context, orgID int64) (*Book, error)
 	UpsertBook(ctx context.Context, book Book) error
 	UpdateBookFields(ctx context.Context, id int64, fields map[string]any) error
 	ListMissingBookSeedsFromLatest(ctx context.Context, startOrgID, endOrgID int64, limit int) ([]BookSeed, error)
 
-	ListLatest(ctx context.Context, page, size int) ([]Latest, int64, error)
+	ListLatest(ctx context.Context, page, size int, starredOnly bool) ([]Latest, int64, error)
 	InsertLatest(ctx context.Context, latest Latest) error
+	SetStar(ctx context.Context, orgID int64, starred bool) error
 
 	UpsertHistory(ctx context.Context, orgID, cid int64) error
 	GetHistoryCID(ctx context.Context, orgID int64) (int64, error)
@@ -54,6 +55,7 @@ type Book struct {
 	OrgID     int64
 	Cover     map[string]string
 	CreatedAt time.Time
+	Starred   bool
 }
 
 type BookSeed struct {
@@ -70,6 +72,7 @@ type Latest struct {
 	OrgID     int64
 	Title     string
 	CreatedAt time.Time
+	Starred   bool
 }
 
 type ChapterMeta struct {
@@ -85,6 +88,7 @@ type BookListItem struct {
 	CoverURL   string            `json:"cover_url"`
 	UpdateTime string            `json:"update_time"`
 	Cover      map[string]string `json:"cover"`
+	Starred    bool              `json:"starred"`
 }
 
 type LatestListItem struct {
@@ -95,6 +99,7 @@ type LatestListItem struct {
 	Prefix     string `json:"prefix"`
 	CoverURL   string `json:"cover_url"`
 	UpdateTime string `json:"update_time"`
+	Starred    bool   `json:"starred"`
 }
 
 type ChapterPage struct {
@@ -146,8 +151,8 @@ func NewComicUseCase(repo ComicRepo, cfg *conf.Bootstrap, logger log.Logger) *Co
 	}
 }
 
-func (u *ComicUseCase) ListBooks(ctx context.Context, page, size int) ([]BookListItem, int64, int, error) {
-	books, total, err := u.repo.ListBooks(ctx, page, size)
+func (u *ComicUseCase) ListBooks(ctx context.Context, page, size int, starredOnly bool) ([]BookListItem, int64, int, error) {
+	books, total, err := u.repo.ListBooks(ctx, page, size, starredOnly)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -164,14 +169,15 @@ func (u *ComicUseCase) ListBooks(ctx context.Context, page, size int) ([]BookLis
 			CoverURL:   u.coverURL(bk.Cover, bk.OrgID),
 			UpdateTime: bk.CreatedAt.Format("2006-01-02 15:04:05"),
 			Cover:      bk.Cover,
+			Starred:    bk.Starred,
 		})
 	}
 	pages := int(math.Ceil(float64(total) / float64(max(size, 1))))
 	return items, total, pages, nil
 }
 
-func (u *ComicUseCase) ListLatest(ctx context.Context, page, size int) ([]LatestListItem, int64, int, error) {
-	rows, total, err := u.repo.ListLatest(ctx, page, size)
+func (u *ComicUseCase) ListLatest(ctx context.Context, page, size int, starredOnly bool) ([]LatestListItem, int64, int, error) {
+	rows, total, err := u.repo.ListLatest(ctx, page, size, starredOnly)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -190,10 +196,15 @@ func (u *ComicUseCase) ListLatest(ctx context.Context, page, size int) ([]Latest
 			Prefix:     row.Prefix,
 			CoverURL:   cover,
 			UpdateTime: row.CreatedAt.Format("2006-01-02 15:04:05"),
+			Starred:    row.Starred,
 		})
 	}
 	pages := int(math.Ceil(float64(total) / float64(max(size, 1))))
 	return items, total, pages, nil
+}
+
+func (u *ComicUseCase) SetStar(ctx context.Context, orgID int64, starred bool) error {
+	return u.repo.SetStar(ctx, orgID, starred)
 }
 
 func (u *ComicUseCase) GetBookDetail(ctx context.Context, orgID int64) (*BookListItem, []ChapterMeta, int64, error) {
@@ -457,7 +468,13 @@ func (u *ComicUseCase) loadChapterImages(ctx context.Context, orgID int64, selec
 		return nil, "", err
 	}
 	if len(imgs) == 0 && usedPrefix != selected.Prefix {
-		u.log.Warnf("chapter images empty with request prefix, fallback to selected prefix: org_id=%d cid=%d req_prefix=%s selected_prefix=%s", orgID, selected.CID, reqPrefix, selected.Prefix)
+		u.log.Warnf(
+			"chapter images empty with request prefix, fallback to selected prefix: org_id=%d cid=%d req_prefix=%s selected_prefix=%s",
+			orgID,
+			selected.CID,
+			reqPrefix,
+			selected.Prefix,
+		)
 		usedPrefix = selected.Prefix
 		imgs, err = u.repo.ListChapterImages(ctx, usedPrefix)
 		if err != nil {
@@ -642,7 +659,7 @@ func (u *ComicUseCase) proofOne(ctx context.Context, bk Book) error {
 }
 
 func (u *ComicUseCase) ListBooksRaw(ctx context.Context, page, size int) ([]Book, int64, int, error) {
-	books, total, err := u.repo.ListBooks(ctx, page, size)
+	books, total, err := u.repo.ListBooks(ctx, page, size, false)
 	if err != nil {
 		return nil, 0, 0, err
 	}

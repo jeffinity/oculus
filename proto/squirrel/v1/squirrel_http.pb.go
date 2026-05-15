@@ -23,6 +23,7 @@ const OperationSquirrelServiceClearManualReviews = "/api.squirrel.v1.SquirrelSer
 const OperationSquirrelServiceClearSectionData = "/api.squirrel.v1.SquirrelService/ClearSectionData"
 const OperationSquirrelServiceCreateTask = "/api.squirrel.v1.SquirrelService/CreateTask"
 const OperationSquirrelServiceDeleteManualRemarkOption = "/api.squirrel.v1.SquirrelService/DeleteManualRemarkOption"
+const OperationSquirrelServiceDeleteManualReview = "/api.squirrel.v1.SquirrelService/DeleteManualReview"
 const OperationSquirrelServiceDeleteTask = "/api.squirrel.v1.SquirrelService/DeleteTask"
 const OperationSquirrelServiceGetReconcileStatus = "/api.squirrel.v1.SquirrelService/GetReconcileStatus"
 const OperationSquirrelServiceListManualRemarkOptions = "/api.squirrel.v1.SquirrelService/ListManualRemarkOptions"
@@ -38,6 +39,7 @@ type SquirrelServiceHTTPServer interface {
 	ClearSectionData(context.Context, *ClearSectionDataRequest) (*ClearSectionDataReply, error)
 	CreateTask(context.Context, *CreateTaskRequest) (*CreateTaskReply, error)
 	DeleteManualRemarkOption(context.Context, *DeleteManualRemarkOptionRequest) (*DeleteManualRemarkOptionReply, error)
+	DeleteManualReview(context.Context, *DeleteManualReviewRequest) (*DeleteManualReviewReply, error)
 	DeleteTask(context.Context, *DeleteTaskRequest) (*DeleteTaskReply, error)
 	GetReconcileStatus(context.Context, *GetReconcileStatusRequest) (*GetReconcileStatusReply, error)
 	ListManualRemarkOptions(context.Context, *ListManualRemarkOptionsRequest) (*ListManualRemarkOptionsReply, error)
@@ -62,6 +64,7 @@ func RegisterSquirrelServiceHTTPServer(s *http.Server, srv SquirrelServiceHTTPSe
 	r.GET("/api/v1/squirrel/tasks/{task_id}/reconcile/rows", _SquirrelService_ListReconcileRows0_HTTP_Handler(srv))
 	r.POST("/api/v1/squirrel/tasks/{task_id}/manual-reviews:upsert", _SquirrelService_UpsertManualReview0_HTTP_Handler(srv))
 	r.DELETE("/api/v1/squirrel/tasks/{task_id}/manual-reviews", _SquirrelService_ClearManualReviews0_HTTP_Handler(srv))
+	r.POST("/api/v1/squirrel/tasks/{task_id}/manual-reviews:delete", _SquirrelService_DeleteManualReview0_HTTP_Handler(srv))
 	r.GET("/api/v1/squirrel/tasks/{task_id}/manual-remark-options", _SquirrelService_ListManualRemarkOptions0_HTTP_Handler(srv))
 	r.POST("/api/v1/squirrel/tasks/{task_id}/manual-remark-options:delete", _SquirrelService_DeleteManualRemarkOption0_HTTP_Handler(srv))
 }
@@ -314,6 +317,31 @@ func _SquirrelService_ClearManualReviews0_HTTP_Handler(srv SquirrelServiceHTTPSe
 	}
 }
 
+func _SquirrelService_DeleteManualReview0_HTTP_Handler(srv SquirrelServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeleteManualReviewRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationSquirrelServiceDeleteManualReview)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeleteManualReview(ctx, req.(*DeleteManualReviewRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeleteManualReviewReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _SquirrelService_ListManualRemarkOptions0_HTTP_Handler(srv SquirrelServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in ListManualRemarkOptionsRequest
@@ -366,6 +394,7 @@ type SquirrelServiceHTTPClient interface {
 	ClearSectionData(ctx context.Context, req *ClearSectionDataRequest, opts ...http.CallOption) (rsp *ClearSectionDataReply, err error)
 	CreateTask(ctx context.Context, req *CreateTaskRequest, opts ...http.CallOption) (rsp *CreateTaskReply, err error)
 	DeleteManualRemarkOption(ctx context.Context, req *DeleteManualRemarkOptionRequest, opts ...http.CallOption) (rsp *DeleteManualRemarkOptionReply, err error)
+	DeleteManualReview(ctx context.Context, req *DeleteManualReviewRequest, opts ...http.CallOption) (rsp *DeleteManualReviewReply, err error)
 	DeleteTask(ctx context.Context, req *DeleteTaskRequest, opts ...http.CallOption) (rsp *DeleteTaskReply, err error)
 	GetReconcileStatus(ctx context.Context, req *GetReconcileStatusRequest, opts ...http.CallOption) (rsp *GetReconcileStatusReply, err error)
 	ListManualRemarkOptions(ctx context.Context, req *ListManualRemarkOptionsRequest, opts ...http.CallOption) (rsp *ListManualRemarkOptionsReply, err error)
@@ -429,6 +458,19 @@ func (c *SquirrelServiceHTTPClientImpl) DeleteManualRemarkOption(ctx context.Con
 	pattern := "/api/v1/squirrel/tasks/{task_id}/manual-remark-options:delete"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationSquirrelServiceDeleteManualRemarkOption))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *SquirrelServiceHTTPClientImpl) DeleteManualReview(ctx context.Context, in *DeleteManualReviewRequest, opts ...http.CallOption) (*DeleteManualReviewReply, error) {
+	var out DeleteManualReviewReply
+	pattern := "/api/v1/squirrel/tasks/{task_id}/manual-reviews:delete"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationSquirrelServiceDeleteManualReview))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {

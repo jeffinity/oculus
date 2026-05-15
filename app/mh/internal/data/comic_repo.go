@@ -69,7 +69,18 @@ type missingBookSeedRow struct {
 	CreatedAt time.Time `gorm:"column:created_at"`
 }
 
-func (r *comicRepo) ListBooks(ctx context.Context, page, size int) ([]biz.Book, int64, error) {
+type listBookRow struct {
+	ID        int64          `gorm:"column:id"`
+	Title     string         `gorm:"column:title"`
+	URL       string         `gorm:"column:url"`
+	Desc      string         `gorm:"column:desc"`
+	OrgID     int64          `gorm:"column:org_id"`
+	Cover     datatypes.JSON `gorm:"column:cover"`
+	CreatedAt time.Time      `gorm:"column:created_at"`
+	Starred   bool           `gorm:"column:starred"`
+}
+
+func (r *comicRepo) ListBooks(ctx context.Context, page, size int, starredOnly bool) ([]biz.Book, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -77,14 +88,19 @@ func (r *comicRepo) ListBooks(ctx context.Context, page, size int) ([]biz.Book, 
 		size = 20
 	}
 
+	base := r.pg.WithContext(ctx).Table("books b").Joins("LEFT JOIN stars s ON s.org_id = b.org_id")
+	if starredOnly {
+		base = base.Where("s.org_id IS NOT NULL")
+	}
+
 	var total int64
-	if err := r.pg.WithContext(ctx).Model(&MHBook{}).Count(&total).Error; err != nil {
+	if err := base.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	var books []MHBook
-	err := r.pg.WithContext(ctx).
-		Order("created_at DESC").
+	var books []listBookRow
+	err := base.Select("b.id, b.title, b.url, b.desc, b.org_id, b.cover, b.created_at, (s.org_id IS NOT NULL) AS starred").
+		Order("b.created_at DESC").
 		Offset((page - 1) * size).
 		Limit(size).
 		Find(&books).Error
@@ -102,6 +118,7 @@ func (r *comicRepo) ListBooks(ctx context.Context, page, size int) ([]biz.Book, 
 			OrgID:     bk.OrgID,
 			Cover:     jsonCoverToMap(bk.Cover),
 			CreatedAt: bk.CreatedAt,
+			Starred:   bk.Starred,
 		})
 	}
 	return ret, total, nil
@@ -212,7 +229,17 @@ func (r *comicRepo) UpdateBookFields(ctx context.Context, id int64, fields map[s
 	return r.pg.WithContext(ctx).Model(&MHBook{}).Where("id = ?", id).Updates(fields).Error
 }
 
-func (r *comicRepo) ListLatest(ctx context.Context, page, size int) ([]biz.Latest, int64, error) {
+type listLatestRow struct {
+	Prefix    string    `gorm:"column:prefix"`
+	CID       int64     `gorm:"column:cid"`
+	CName     string    `gorm:"column:cname"`
+	OrgID     int64     `gorm:"column:org_id"`
+	Title     string    `gorm:"column:title"`
+	CreatedAt time.Time `gorm:"column:created_at"`
+	Starred   bool      `gorm:"column:starred"`
+}
+
+func (r *comicRepo) ListLatest(ctx context.Context, page, size int, starredOnly bool) ([]biz.Latest, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -220,14 +247,19 @@ func (r *comicRepo) ListLatest(ctx context.Context, page, size int) ([]biz.Lates
 		size = 20
 	}
 
+	base := r.pg.WithContext(ctx).Table("latest l").Joins("LEFT JOIN stars s ON s.org_id = l.org_id")
+	if starredOnly {
+		base = base.Where("s.org_id IS NOT NULL")
+	}
+
 	var total int64
-	if err := r.pg.WithContext(ctx).Model(&MHLatest{}).Count(&total).Error; err != nil {
+	if err := base.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	var rows []MHLatest
-	err := r.pg.WithContext(ctx).
-		Order("id DESC").
+	var rows []listLatestRow
+	err := base.Select("l.prefix, l.cid, l.cname, l.org_id, l.title, l.created_at, (s.org_id IS NOT NULL) AS starred").
+		Order("l.id DESC").
 		Offset((page - 1) * size).
 		Limit(size).
 		Find(&rows).Error
@@ -244,9 +276,27 @@ func (r *comicRepo) ListLatest(ctx context.Context, page, size int) ([]biz.Lates
 			OrgID:     row.OrgID,
 			Title:     row.Title,
 			CreatedAt: row.CreatedAt,
+			Starred:   row.Starred,
 		})
 	}
 	return ret, total, nil
+}
+
+func (r *comicRepo) SetStar(ctx context.Context, orgID int64, starred bool) error {
+	if starred {
+		row := &MHStar{
+			OrgID:     orgID,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+		return r.pg.WithContext(ctx).Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "org_id"}},
+			DoUpdates: clause.Assignments(map[string]any{
+				"updated_at": time.Now(),
+			}),
+		}).Create(row).Error
+	}
+	return r.pg.WithContext(ctx).Where("org_id = ?", orgID).Delete(&MHStar{}).Error
 }
 
 func (r *comicRepo) InsertLatest(ctx context.Context, latest biz.Latest) error {

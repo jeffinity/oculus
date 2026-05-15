@@ -24,6 +24,7 @@ const OperationMHComicServiceGetChapter = "/api.mh.v1.MHComicService/GetChapter"
 const OperationMHComicServiceListBooks = "/api.mh.v1.MHComicService/ListBooks"
 const OperationMHComicServiceListLatest = "/api.mh.v1.MHComicService/ListLatest"
 const OperationMHComicServiceProot = "/api.mh.v1.MHComicService/Proot"
+const OperationMHComicServiceSetStar = "/api.mh.v1.MHComicService/SetStar"
 const OperationMHComicServiceSync = "/api.mh.v1.MHComicService/Sync"
 
 type MHComicServiceHTTPServer interface {
@@ -37,6 +38,8 @@ type MHComicServiceHTTPServer interface {
 	ListLatest(context.Context, *ListLatestRequest) (*ListLatestReply, error)
 	// Proot 反查并补全漫画信息
 	Proot(context.Context, *ProotRequest) (*OperationReply, error)
+	// SetStar 设置漫画星标
+	SetStar(context.Context, *SetStarRequest) (*SetStarReply, error)
 	// Sync 同步增量章节
 	Sync(context.Context, *SyncRequest) (*OperationReply, error)
 }
@@ -49,6 +52,7 @@ func RegisterMHComicServiceHTTPServer(s *http.Server, srv MHComicServiceHTTPServ
 	r.GET("/api/v1/mh/chapter", _MHComicService_GetChapter0_HTTP_Handler(srv))
 	r.POST("/api/v1/mh/sync", _MHComicService_Sync0_HTTP_Handler(srv))
 	r.POST("/api/v1/mh/proot", _MHComicService_Proot0_HTTP_Handler(srv))
+	r.POST("/api/v1/mh/star", _MHComicService_SetStar0_HTTP_Handler(srv))
 }
 
 func _MHComicService_ListBooks0_HTTP_Handler(srv MHComicServiceHTTPServer) func(ctx http.Context) error {
@@ -171,6 +175,28 @@ func _MHComicService_Proot0_HTTP_Handler(srv MHComicServiceHTTPServer) func(ctx 
 	}
 }
 
+func _MHComicService_SetStar0_HTTP_Handler(srv MHComicServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in SetStarRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationMHComicServiceSetStar)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.SetStar(ctx, req.(*SetStarRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*SetStarReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 type MHComicServiceHTTPClient interface {
 	// GetBook 查询漫画目录
 	GetBook(ctx context.Context, req *GetBookRequest, opts ...http.CallOption) (rsp *GetBookReply, err error)
@@ -182,6 +208,8 @@ type MHComicServiceHTTPClient interface {
 	ListLatest(ctx context.Context, req *ListLatestRequest, opts ...http.CallOption) (rsp *ListLatestReply, err error)
 	// Proot 反查并补全漫画信息
 	Proot(ctx context.Context, req *ProotRequest, opts ...http.CallOption) (rsp *OperationReply, err error)
+	// SetStar 设置漫画星标
+	SetStar(ctx context.Context, req *SetStarRequest, opts ...http.CallOption) (rsp *SetStarReply, err error)
 	// Sync 同步增量章节
 	Sync(ctx context.Context, req *SyncRequest, opts ...http.CallOption) (rsp *OperationReply, err error)
 }
@@ -256,6 +284,20 @@ func (c *MHComicServiceHTTPClientImpl) Proot(ctx context.Context, in *ProotReque
 	pattern := "/api/v1/mh/proot"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationMHComicServiceProot))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// SetStar 设置漫画星标
+func (c *MHComicServiceHTTPClientImpl) SetStar(ctx context.Context, in *SetStarRequest, opts ...http.CallOption) (*SetStarReply, error) {
+	var out SetStarReply
+	pattern := "/api/v1/mh/star"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationMHComicServiceSetStar))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {

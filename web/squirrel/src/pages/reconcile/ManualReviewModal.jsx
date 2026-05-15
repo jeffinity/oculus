@@ -86,34 +86,35 @@ export default function ManualReviewModal({
       <Divider />
       <Space direction="vertical" style={{ width: "100%" }}>
         <div>
-          <Typography.Text>退款数量</Typography.Text>
-          <InputNumber
-            style={{ width: "100%", marginTop: 6 }}
-            value={refundQty}
-            onChange={onRefundQtyChange}
-            min={0}
-            precision={0}
-            step={1}
-            controls={false}
-          />
-        </div>
-        <div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-            <Typography.Text>退款金额</Typography.Text>
+            <Typography.Text>退款数量</Typography.Text>
             <Button
               size="small"
               type="link"
               style={{ paddingInline: 0 }}
-              onClick={() => onRefundAmountChange(valueFromRow(activeManualRow, buyerPaidColIndex) || 0)}
+              onClick={() => {
+                onRefundQtyChange(valueFromRow(activeManualRow, shipQtyColIndex) || 0);
+                onRefundAmountChange(valueFromRow(activeManualRow, buyerPaidColIndex) || 0);
+              }}
             >
               全部退款
             </Button>
           </div>
           <InputNumber
             style={{ width: "100%", marginTop: 6 }}
+            value={refundQty}
+            onChange={onRefundQtyChange}
+            precision={0}
+            step={1}
+            controls={false}
+          />
+        </div>
+        <div>
+          <Typography.Text>退款金额</Typography.Text>
+          <InputNumber
+            style={{ width: "100%", marginTop: 6 }}
             value={refundAmount}
             onChange={onRefundAmountChange}
-            min={0}
             step={0.01}
             controls={false}
           />

@@ -89,6 +89,15 @@ async function clearManualReviews(taskId) {
   });
 }
 
+async function deleteManualReview(taskId, payload) {
+  const body = { taskId, ...payload };
+  return requestJSON(`/api/v1/squirrel/tasks/${encodeURIComponent(taskId)}/manual-reviews:delete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+}
+
 async function listManualRemarkOptions(taskId) {
   return requestJSON(`/api/v1/squirrel/tasks/${encodeURIComponent(taskId)}/manual-remark-options`);
 }
@@ -140,12 +149,12 @@ function buildSettleValues(row, settleContext, reviewOverride = null) {
     return { settleQty: 0, settleAmount: 0, refundQty: 0, refundAmount: 0, shipQty: 0, buyerPaid: 0 };
   }
   const review = reviewOverride || row.__manualReview || null;
-  const refundQty = Math.max(0, Math.floor(toNumber(review?.refundQty || review?.refund_qty || 0)));
-  const refundAmount = Math.max(0, toNumber(review?.refundAmount || review?.refund_amount || 0));
+  const refundQty = Math.trunc(toNumber(review?.refundQty || review?.refund_qty || 0));
+  const refundAmount = toNumber(review?.refundAmount || review?.refund_amount || 0);
   const shipQty = toNumber(row[`c_${settleContext.shipQtyColIndex}`] || "");
   const buyerPaid = toNumber(row[`c_${settleContext.buyerPaidColIndex}`] || "");
   const settleQty = shipQty - refundQty;
-  const settleAmount = shipQty === 0 ? 0 : buyerPaid - refundAmount;
+  const settleAmount = buyerPaid - refundAmount;
   return { settleQty, settleAmount, refundQty, refundAmount, shipQty, buyerPaid };
 }
 
@@ -322,8 +331,8 @@ function ReconcilePage() {
   function openManualReview(row) {
     setActiveManualRow(row);
     const review = row?.__manualReview || null;
-    setRefundQty(Math.max(0, Math.floor(review?.refundQty ? toNumber(review.refundQty) : 0)));
-    setRefundAmount(Math.max(0, review?.refundAmount ? toNumber(review.refundAmount) : 0));
+    setRefundQty(Math.trunc(review?.refundQty ? toNumber(review.refundQty) : 0));
+    setRefundAmount(review?.refundAmount ? toNumber(review.refundAmount) : 0);
     setManualRemark(String(review?.remark || ""));
     loadManualRemarkOptions();
     setManualModalOpen(true);
@@ -345,6 +354,20 @@ function ReconcilePage() {
       msgApi.success("订单号已复制");
     } catch {
       msgApi.error("复制失败，请手动复制");
+    }
+  }
+
+  async function handleDeleteManualReview(row) {
+    if (!row) return;
+    try {
+      await deleteManualReview(taskId, {
+        filename: row.filename,
+        rowNo: row.rowNo
+      });
+      setRows((prev) => prev.map((it) => (it.key === row.key ? { ...it, __manualReview: null } : it)));
+      msgApi.success("人工核查记录已删除");
+    } catch (err) {
+      msgApi.error(err?.message || "人工核查记录删除失败");
     }
   }
 
@@ -466,8 +489,8 @@ function ReconcilePage() {
   const manualPreview = useMemo(() => {
     if (!activeManualRow) return null;
     return buildSettleValues(activeManualRow, settleContext, {
-      refundQty: String(Math.max(0, Math.floor(toNumber(refundQty ?? 0)))),
-      refundAmount: String(Math.max(0, toNumber(refundAmount ?? 0)))
+      refundQty: String(Math.trunc(toNumber(refundQty ?? 0))),
+      refundAmount: String(toNumber(refundAmount ?? 0))
     });
   }, [activeManualRow, settleContext, refundQty, refundAmount]);
 
@@ -478,8 +501,8 @@ function ReconcilePage() {
       const payload = {
         filename: activeManualRow.filename,
         rowNo: activeManualRow.rowNo,
-        refundQty: String(Math.max(0, Math.floor(toNumber(refundQty)))),
-        refundAmount: String(Math.max(0, toNumber(refundAmount))),
+        refundQty: String(Math.trunc(toNumber(refundQty))),
+        refundAmount: String(toNumber(refundAmount)),
         remark: manualRemark.trim(),
         ignored
       };
@@ -709,6 +732,7 @@ function ReconcilePage() {
               amountCheckMap={amountCheckMap}
               filteredRows={filteredRows}
               onCopyOrderNo={copyOrderNo}
+              onDeleteManualReview={handleDeleteManualReview}
               onOpenManualReview={openManualReview}
               salesColumns={salesColumns}
               salesOrderNoColIndex={salesOrderNoColIndex}
@@ -733,8 +757,8 @@ function ReconcilePage() {
               onDeleteRemarkOption={handleDeleteManualRemarkOption}
               onRemarkChange={(e) => setManualRemark(e.target.value)}
               onSelectRemarkOption={(value) => setManualRemark(value)}
-              onRefundAmountChange={(v) => setRefundAmount(Math.max(0, toNumber(v)))}
-              onRefundQtyChange={(v) => setRefundQty(Math.max(0, Math.floor(toNumber(v))))}
+              onRefundAmountChange={(v) => setRefundAmount(toNumber(v))}
+              onRefundQtyChange={(v) => setRefundQty(Math.trunc(toNumber(v)))}
               onSubmit={submitManualReview}
               refundAmount={refundAmount}
               refundQty={refundQty}
