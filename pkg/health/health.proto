@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package gainetics.probe_executor.health.v1;
+package oculus.health.v1;
 
-option go_package = "github.com/jeffinity/app-layout/pkg/health;healthv1";
+option go_package = "github.com/jeffinity/oculus/pkg/health;healthv1";
 
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";

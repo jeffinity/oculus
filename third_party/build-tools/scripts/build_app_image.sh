@@ -94,7 +94,7 @@ if [[ ! -d "$APP_PATH" ]]; then
 fi
 
 APP_NAME=${APP_PATH##*/}
-IMAGE="harbor.gainetics.io/waf/images/${APP_NAME}:${VERSION}"
+IMAGE="harbor.oculus.io/waf/images/${APP_NAME}:${VERSION}"
 
 echo_color "Building image ${IMAGE} for ${TARGETOS}/${TARGETARCH}..." cyan
 
