@@ -1,0 +1,13 @@
+version: v2
+
+modules:
+  - path: .
+  - path: third_party
+
+lint:
+  use:
+    - STANDARD
+
+breaking:
+  use:
+    - FILE

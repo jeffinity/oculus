@@ -1,0 +1,131 @@
+version: '3'
+
+vars:
+  TOOLS_DIR: 'third_party/build-tools'
+
+includes:
+  common: third_party/build-tools/Taskfile.yml
+
+tasks:
+  check:
+    desc: Env check
+    cmds:
+      - task: common:check
+        silent: true
+
+  format:
+    desc: Format *go code
+    deps: [check]
+    cmds:
+      - cmd: task common:format -- {{.CLI_ARGS}}
+        silent: true
+
+  format-app:
+    desc: Format {app}/*go code
+    deps: [check]
+    cmds:
+      - cmd: task common:format-app -- {{.CLI_ARGS}}
+        silent: true
+
+  lint:
+    desc: Lint all code
+    deps: [check]
+    cmds:
+      - cmd: task common:lint -- {{.CLI_ARGS}}
+        silent: true
+
+  conf:
+    desc: Gen {app}/internal/conf/*.proto
+    deps: [check]
+    cmds:
+      - cmd: task common:conf -- {{.CLI_ARGS}}
+        silent: true
+
+  api:
+    desc: Gen api/*.proto to proto/*
+    deps: [check]
+    cmds:
+      - cmd: mkdir -p proto
+        silent: true
+      - cmd: buf generate --template buf.api.gen.yaml --path "{{if .CLI_ARGS}}{{.CLI_ARGS}}{{else}}api{{end}}"
+        silent: true
+      - cmd: |
+          if [ -d "proto/api" ]; then
+            cp -R proto/api/. proto/
+            rm -rf proto/api
+          fi
+        silent: true
+
+  wire:
+    desc: wire gen selected {app}
+    deps: [check]
+    cmds:
+      - cmd: task common:wire -- {{.CLI_ARGS}}
+        silent: true
+
+  wire-all:
+    desc: wire gen all app
+    deps: [check]
+    cmds:
+      - cmd: task common:wire-all -- {{.CLI_ARGS}}
+        silent: true
+
+  build:
+    desc: build app for the native platform
+    deps: [check]
+    cmds:
+      - cmd: task common:build -- {{.CLI_ARGS}}
+        silent: true
+
+  build-linux-amd64:
+    desc: build app for the linux-amd64
+    deps: [check]
+    cmds:
+      - cmd: task common:build-linux-amd64 -- {{.CLI_ARGS}}
+        silent: true
+
+  build-linux-arm64:
+    desc: build app for the linux-arm64
+    deps: [check]
+    cmds:
+      - cmd: task common:build-linux-arm64 -- {{.CLI_ARGS}}
+        silent: true
+
+  deploy:
+    desc: build app to the server
+    cmds:
+      - cmd: task common:deploy -- {{.CLI_ARGS}}
+        silent: true
+
+  sync:
+    desc: build and sync web app to remote host, e.g. task sync -- web/squirrel mh
+    cmds:
+      - cmd: |
+          set -euo pipefail
+
+          web_dir="$(printf '%s' "{{.CLI_ARGS}}" | awk '{print $1}')"
+          host="$(printf '%s' "{{.CLI_ARGS}}" | awk '{print $2}')"
+
+          if [ -z "${web_dir}" ] || [ -z "${host}" ]; then
+            echo "usage: task sync -- web/<name> <host>"
+            exit 1
+          fi
+
+          if [ ! -d "${web_dir}" ]; then
+            echo "web dir not found: ${web_dir}"
+            exit 1
+          fi
+
+          app_name="$(basename "${web_dir}")"
+          remote_dir="/data/web/${app_name}"
+
+          npm --prefix "${web_dir}" run build
+          rsync -a --delete "${web_dir}/dist/" "${host}:${remote_dir}/"
+        silent: true
+
+  newapp:
+    desc: create new app with oculus
+    deps: [check]
+    cmds:
+      - cmd: task common:newapp -- {{.CLI_ARGS}}
+        silent: true

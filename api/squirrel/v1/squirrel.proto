@@ -1,0 +1,328 @@
+syntax = "proto3";
+
+package api.squirrel.v1;
+
+option go_package = "github.com/jeffinity/oculus/proto/squirrel/v1;v1";
+
+import "google/api/annotations.proto";
+
+service SquirrelService {
+  rpc ListTasks(ListTasksRequest) returns (ListTasksReply) {
+    option (google.api.http) = {
+      get: "/api/v1/squirrel/tasks"
+    };
+  }
+
+  rpc CreateTask(CreateTaskRequest) returns (CreateTaskReply) {
+    option (google.api.http) = {
+      post: "/api/v1/squirrel/tasks"
+      body: "*"
+    };
+  }
+
+  rpc DeleteTask(DeleteTaskRequest) returns (DeleteTaskReply) {
+    option (google.api.http) = {
+      delete: "/api/v1/squirrel/tasks/{task_id}"
+    };
+  }
+
+  rpc UploadSectionFile(UploadSectionFileRequest) returns (UploadSectionFileReply) {
+    option (google.api.http) = {
+      post: "/api/v1/squirrel/tasks/{task_id}/sections/{section}/upload"
+      body: "*"
+    };
+  }
+
+  rpc ListSectionRows(ListSectionRowsRequest) returns (ListSectionRowsReply) {
+    option (google.api.http) = {
+      get: "/api/v1/squirrel/tasks/{task_id}/sections/{section}/rows"
+    };
+  }
+
+  rpc ClearSectionData(ClearSectionDataRequest) returns (ClearSectionDataReply) {
+    option (google.api.http) = {
+      delete: "/api/v1/squirrel/tasks/{task_id}/sections/{section}/data"
+    };
+  }
+
+  rpc StartReconcile(StartReconcileRequest) returns (StartReconcileReply) {
+    option (google.api.http) = {
+      post: "/api/v1/squirrel/tasks/{task_id}/reconcile:start"
+      body: "*"
+    };
+  }
+
+  rpc GetReconcileStatus(GetReconcileStatusRequest) returns (GetReconcileStatusReply) {
+    option (google.api.http) = {
+      get: "/api/v1/squirrel/tasks/{task_id}/reconcile/status"
+    };
+  }
+
+  rpc ListReconcileRows(ListReconcileRowsRequest) returns (ListReconcileRowsReply) {
+    option (google.api.http) = {
+      get: "/api/v1/squirrel/tasks/{task_id}/reconcile/rows"
+    };
+  }
+
+  rpc UpsertManualReview(UpsertManualReviewRequest) returns (UpsertManualReviewReply) {
+    option (google.api.http) = {
+      post: "/api/v1/squirrel/tasks/{task_id}/manual-reviews:upsert"
+      body: "*"
+    };
+  }
+
+  rpc ClearManualReviews(ClearManualReviewsRequest) returns (ClearManualReviewsReply) {
+    option (google.api.http) = {
+      delete: "/api/v1/squirrel/tasks/{task_id}/manual-reviews"
+    };
+  }
+
+  rpc DeleteManualReview(DeleteManualReviewRequest) returns (DeleteManualReviewReply) {
+    option (google.api.http) = {
+      post: "/api/v1/squirrel/tasks/{task_id}/manual-reviews:delete"
+      body: "*"
+    };
+  }
+
+  rpc ListManualRemarkOptions(ListManualRemarkOptionsRequest) returns (ListManualRemarkOptionsReply) {
+    option (google.api.http) = {
+      get: "/api/v1/squirrel/tasks/{task_id}/manual-remark-options"
+    };
+  }
+
+  rpc DeleteManualRemarkOption(DeleteManualRemarkOptionRequest) returns (DeleteManualRemarkOptionReply) {
+    option (google.api.http) = {
+      post: "/api/v1/squirrel/tasks/{task_id}/manual-remark-options:delete"
+      body: "*"
+    };
+  }
+}
+
+message ListTasksRequest {}
+
+message ListTasksReply {
+  repeated Task items = 1;
+}
+
+message CreateTaskRequest {
+  string title = 1;
+  string month_tag = 2;
+}
+
+message CreateTaskReply {
+  Task item = 1;
+}
+
+message DeleteTaskRequest {
+  string task_id = 1;
+}
+
+message DeleteTaskReply {
+  bool success = 1;
+}
+
+message UploadSectionFileRequest {
+  string task_id = 1;
+  string section = 2;
+  string filename = 3;
+  bytes file_content = 4;
+}
+
+message UploadSectionFileReply {
+  SectionSummary summary = 1;
+}
+
+message ListSectionRowsRequest {
+  string task_id = 1;
+  string section = 2;
+  uint32 page = 3;
+  uint32 page_size = 4;
+}
+
+message ListSectionRowsReply {
+  SectionSummary summary = 1;
+  repeated string columns = 2;
+  repeated SheetRow rows = 3;
+  uint32 page = 4;
+  uint32 page_size = 5;
+  uint32 total = 6;
+  repeated SectionSummary summaries = 7;
+}
+
+message ClearSectionDataRequest {
+  string task_id = 1;
+  string section = 2;
+  string filename = 3;
+}
+
+message ClearSectionDataReply {
+  bool success = 1;
+}
+
+message StartReconcileRequest {
+  string task_id = 1;
+  bool force = 2;
+}
+
+message StartReconcileReply {
+  ReconcileRun run = 1;
+}
+
+message GetReconcileStatusRequest {
+  string task_id = 1;
+  string run_id = 2;
+}
+
+message GetReconcileStatusReply {
+  ReconcileRun run = 1;
+}
+
+message ListReconcileRowsRequest {
+  string task_id = 1;
+  string run_id = 2;
+  uint32 page = 3;
+  uint32 page_size = 4;
+}
+
+message ListReconcileRowsReply {
+  ReconcileRun run = 1;
+  repeated string columns = 2;
+  repeated ReconcileRow rows = 3;
+  uint32 page = 4;
+  uint32 page_size = 5;
+  uint32 total = 6;
+}
+
+message UpsertManualReviewRequest {
+  string task_id = 1;
+  string filename = 2;
+  uint32 row_no = 3;
+  string refund_qty = 4;
+  string refund_amount = 5;
+  bool ignored = 6;
+  string remark = 7;
+}
+
+message UpsertManualReviewReply {
+  ManualReview review = 1;
+}
+
+message ClearManualReviewsRequest {
+  string task_id = 1;
+}
+
+message ClearManualReviewsReply {
+  bool success = 1;
+}
+
+message DeleteManualReviewRequest {
+  string task_id = 1;
+  string filename = 2;
+  uint32 row_no = 3;
+}
+
+message DeleteManualReviewReply {
+  bool success = 1;
+}
+
+message ListManualRemarkOptionsRequest {
+  string task_id = 1;
+}
+
+message ListManualRemarkOptionsReply {
+  repeated ManualRemarkOption items = 1;
+}
+
+message DeleteManualRemarkOptionRequest {
+  string task_id = 1;
+  string content = 2;
+}
+
+message DeleteManualRemarkOptionReply {
+  bool success = 1;
+}
+
+message Task {
+  string task_id = 1;
+  string title = 2;
+  string month_tag = 3;
+  string created_at = 4;
+  string updated_at = 5;
+  repeated SectionSummary section_summaries = 6;
+}
+
+message SectionSummary {
+  string section = 1;
+  string file_id = 2;
+  string filename = 3;
+  string sheet_name = 4;
+  uint32 total_rows = 5;
+  uint32 column_count = 6;
+  repeated string header = 7;
+  string updated_at = 8;
+}
+
+message SheetRow {
+  uint32 row_no = 1;
+  repeated string values = 2;
+  string filename = 3;
+}
+
+message ReconcileRun {
+  string run_id = 1;
+  string task_id = 2;
+  string status = 3;
+  uint32 progress = 4;
+  string stage = 5;
+  string message = 6;
+  bool reused = 7;
+  string data_fingerprint = 8;
+  uint32 total_rows = 9;
+  uint32 processed_rows = 10;
+  uint32 matched_rows = 11;
+  uint32 result_total_rows = 12;
+  string created_at = 13;
+  string updated_at = 14;
+  string finished_at = 15;
+}
+
+message ReconcileRow {
+  uint32 row_no = 1;
+  repeated string values = 2;
+  repeated ReconcileMatch matches = 3;
+  string filename = 4;
+  ManualReview manual_review = 5;
+}
+
+message ReconcileMatch {
+  string source = 1;
+  uint32 row_no = 2;
+  repeated KeyValue detail = 3;
+  string filename = 4;
+}
+
+message ManualReview {
+  string task_id = 1;
+  string filename = 2;
+  uint32 row_no = 3;
+  string refund_qty = 4;
+  string refund_amount = 5;
+  string settle_qty = 6;
+  string settle_amount = 7;
+  bool ignored = 8;
+  string updated_at = 9;
+  string review_type = 10;
+  string remark = 11;
+}
+
+message ManualRemarkOption {
+  string task_id = 1;
+  string content = 2;
+  uint32 used_count = 3;
+  string updated_at = 4;
+}
+
+message KeyValue {
+  string key = 1;
+  string value = 2;
+}

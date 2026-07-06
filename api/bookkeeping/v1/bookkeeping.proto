@@ -1,0 +1,726 @@
+syntax = "proto3";
+
+package api.bookkeeping.v1;
+
+option go_package = "github.com/jeffinity/oculus/proto/bookkeeping/v1;v1";
+
+import "google/api/annotations.proto";
+
+service BookkeepingService {
+
+  // 查询资产列表（按月份聚合，返回资产、负债、净资产及贷款明细）
+  rpc AssetList(AssetListRequest) returns (AssetListReply) {
+    option (google.api.http) = {
+      get: "/api/v1/bookkeeping/assets"
+    };
+  }
+
+  // 查询某月资产明细（若当月为空且上月存在，会自动复制一份上月数据到当月）
+  rpc AssetDetailList(AssetDetailListRequest) returns (AssetDetailListReply) {
+    option (google.api.http) = {
+      get: "/api/v1/bookkeeping/asset-details"
+    };
+  }
+
+  // 新增资产明细
+  rpc CreateAssetDetail(CreateAssetDetailRequest) returns (CreateAssetDetailReply) {
+    option (google.api.http) = {
+      post: "/api/v1/bookkeeping/asset-details"
+      body: "*"
+    };
+  }
+
+  // 更新资产明细
+  rpc UpdateAssetDetail(UpdateAssetDetailRequest) returns (UpdateAssetDetailReply) {
+    option (google.api.http) = {
+      put: "/api/v1/bookkeeping/asset-details/{detail_id}"
+      body: "*"
+    };
+  }
+
+  // 删除资产明细
+  rpc DeleteAssetDetail(DeleteAssetDetailRequest) returns (DeleteAssetDetailReply) {
+    option (google.api.http) = {
+      delete: "/api/v1/bookkeeping/asset-details/{detail_id}"
+    };
+  }
+
+  // 更新某月资产备注
+  rpc UpdateAssetRemark(UpdateAssetRemarkRequest) returns (UpdateAssetRemarkReply) {
+    option (google.api.http) = {
+      put: "/api/v1/bookkeeping/assets/{ym}/remark"
+      body: "*"
+    };
+  }
+
+  // 新增或更新账本记录（按日期+类别+金额唯一更新）
+  rpc UpsertLedgerEntry(UpsertLedgerEntryRequest) returns (UpsertLedgerEntryReply) {
+    option (google.api.http) = {
+      post: "/api/v1/bookkeeping/ledgers"
+      body: "*"
+    };
+  }
+
+  // 查询某月账本清单
+  rpc LedgerList(LedgerListRequest) returns (LedgerListReply) {
+    option (google.api.http) = {
+      get: "/api/v1/bookkeeping/ledgers"
+    };
+  }
+
+  // 查询账单统计（支持按月/按年趋势与支出排行榜）
+  rpc LedgerStats(LedgerStatsRequest) returns (LedgerStatsReply) {
+    option (google.api.http) = {
+      get: "/api/v1/bookkeeping/ledgers/stats"
+    };
+  }
+
+  // 创建房贷（等额本息）
+  rpc CreateMortgageLoan(CreateMortgageLoanRequest) returns (CreateMortgageLoanReply) {
+    option (google.api.http) = {
+      post: "/api/v1/bookkeeping/loans/mortgage"
+      body: "*"
+    };
+  }
+
+  // 设置贷款开始还款时间
+  rpc StartLoanRepayment(StartLoanRepaymentRequest) returns (StartLoanRepaymentReply) {
+    option (google.api.http) = {
+      post: "/api/v1/bookkeeping/loans/{loan_id}/start-repayment"
+      body: "*"
+    };
+  }
+
+  // 调整贷款利率（从指定年月起生效，重算后续还款计划）
+  rpc AdjustLoanRate(AdjustLoanRateRequest) returns (AdjustLoanRateReply) {
+    option (google.api.http) = {
+      post: "/api/v1/bookkeeping/loans/{loan_id}/rate-adjustments"
+      body: "*"
+    };
+  }
+
+  // 新增提前还款记录（按指定方式重算后续还款计划）
+  rpc AddLoanPrepayment(AddLoanPrepaymentRequest) returns (AddLoanPrepaymentReply) {
+    option (google.api.http) = {
+      post: "/api/v1/bookkeeping/loans/{loan_id}/prepayments"
+      body: "*"
+    };
+  }
+
+  // 查询贷款汇总列表
+  rpc LoanSummaryList(LoanSummaryListRequest) returns (LoanSummaryListReply) {
+    option (google.api.http) = {
+      get: "/api/v1/bookkeeping/loans"
+    };
+  }
+
+  // 查询贷款详情（含下次还款日起未来N个月计划）
+  rpc LoanDetail(LoanDetailRequest) returns (LoanDetailReply) {
+    option (google.api.http) = {
+      get: "/api/v1/bookkeeping/loans/{loan_id}"
+    };
+  }
+}
+
+message AssetListRequest {
+
+  // 起始年月，格式：YYYY.MM（可选）
+  string start_ym = 1;
+
+  // 结束年月，格式：YYYY.MM（可选）
+  string end_ym = 2;
+
+  // 是否计算贷款并计入负债和净资产（默认 false）
+  bool include_loan = 3;
+}
+
+message AssetListReply {
+
+  // 资产列表
+  repeated AssetItem items = 1;
+}
+
+message AssetItem {
+
+  // 年月，格式：YYYY.MM
+  string ym = 1;
+
+  // 资产
+  string asset = 2;
+
+  // 净资产
+  string net_asset = 3;
+
+  // 负债
+  string liability = 4;
+
+  // 备注
+  string remark = 5;
+
+  // 当月贷款待还本金明细
+  repeated LoanBalanceItem loans = 6;
+}
+
+message AssetDetailListRequest {
+
+  // 年月，格式：YYYY.MM
+  string ym = 1;
+}
+
+message AssetDetailListReply {
+
+  // 资产明细列表
+  repeated AssetDetailItem items = 1;
+}
+
+message AssetDetailItem {
+
+  // 明细ID
+  string detail_id = 1;
+
+  // 年月，格式：YYYY.MM
+  string ym = 2;
+
+  // 资产类型：asset / liability
+  string asset_type = 3;
+
+  // 二级分类：现金、储蓄卡、虚拟账户、债权、信用卡、欠款、消费贷款
+  string sub_type = 4;
+
+  // 预置编码（可选）
+  string preset_code = 5;
+
+  // 资产名称
+  string asset_name = 6;
+
+  // 金额（正数）
+  string amount = 7;
+
+  // 备注（可选）
+  string remark = 8;
+
+  // 消费贷总金额（sub_type=消费贷款 时生效）
+  string consumer_loan_total_amount = 9;
+
+  // 消费贷开始月份，格式：YYYY.MM（sub_type=消费贷款 时生效）
+  string consumer_loan_start_ym = 10;
+
+  // 消费贷期数（3/6/12/24/36/60，sub_type=消费贷款 时生效）
+  uint32 consumer_loan_term_months = 11;
+}
+
+message CreateAssetDetailRequest {
+
+  // 年月，格式：YYYY.MM
+  string ym = 1;
+
+  // 资产类型：asset / liability
+  string asset_type = 2;
+
+  // 二级分类：现金、储蓄卡、虚拟账户、债权、信用卡、欠款、消费贷款
+  string sub_type = 3;
+
+  // 预置编码（可选）
+  string preset_code = 4;
+
+  // 资产名称
+  string asset_name = 5;
+
+  // 金额（正数）
+  string amount = 6;
+
+  // 备注（可选）
+  string remark = 7;
+
+  // 消费贷总金额（sub_type=消费贷款 时生效）
+  string consumer_loan_total_amount = 8;
+
+  // 消费贷开始月份，格式：YYYY.MM（sub_type=消费贷款 时生效）
+  string consumer_loan_start_ym = 9;
+
+  // 消费贷期数（3/6/12/24/36/60，sub_type=消费贷款 时生效）
+  uint32 consumer_loan_term_months = 10;
+}
+
+message CreateAssetDetailReply {
+
+  // 明细数据
+  AssetDetailItem item = 1;
+}
+
+message UpdateAssetDetailRequest {
+
+  // 明细ID
+  string detail_id = 1;
+
+  // 年月，格式：YYYY.MM
+  string ym = 2;
+
+  // 资产类型：asset / liability
+  string asset_type = 3;
+
+  // 二级分类：现金、储蓄卡、虚拟账户、债权、信用卡、欠款、消费贷款
+  string sub_type = 4;
+
+  // 预置编码（可选）
+  string preset_code = 5;
+
+  // 资产名称
+  string asset_name = 6;
+
+  // 金额（正数）
+  string amount = 7;
+
+  // 备注（可选）
+  string remark = 8;
+
+  // 消费贷总金额（sub_type=消费贷款 时生效）
+  string consumer_loan_total_amount = 9;
+
+  // 消费贷开始月份，格式：YYYY.MM（sub_type=消费贷款 时生效）
+  string consumer_loan_start_ym = 10;
+
+  // 消费贷期数（3/6/12/24/36/60，sub_type=消费贷款 时生效）
+  uint32 consumer_loan_term_months = 11;
+}
+
+message UpdateAssetDetailReply {
+
+  // 明细数据
+  AssetDetailItem item = 1;
+}
+
+message DeleteAssetDetailRequest {
+
+  // 明细ID
+  string detail_id = 1;
+}
+
+message DeleteAssetDetailReply {
+
+  // 删除是否成功
+  bool success = 1;
+}
+
+message UpdateAssetRemarkRequest {
+
+  // 年月，格式：YYYY.MM
+  string ym = 1;
+
+  // 备注
+  string remark = 2;
+}
+
+message UpdateAssetRemarkReply {
+
+  // 更新后的月资产数据
+  AssetItem item = 1;
+}
+
+message UpsertLedgerEntryRequest {
+
+  // 日期，格式：YYYY-MM-DD（支持 YYYY.M.D）
+  string entry_date = 1;
+
+  // 金额（支出建议负数，收入建议正数）
+  string amount = 2;
+
+  // 类别（支持：餐饮、购物、日用、交通、汽车、蔬菜、水果、零食、运动、娱乐、通讯、服饰、美容、住房、居家、孩子、长辈、社交、旅行、烟酒、数码、医疗、书籍、学习、宠物、礼金、礼物、办公、维修、捐赠、彩票、亲友、快递、设置）
+  string category = 3;
+
+  // 备注（可选）
+  string remark = 4;
+}
+
+message UpsertLedgerEntryReply {
+
+  // 日期，格式：YYYY-MM-DD
+  string entry_date = 1;
+
+  // 年月，格式：YYYY.MM
+  string ym = 2;
+
+  // 金额
+  string amount = 3;
+
+  // 类别
+  string category = 4;
+
+  // 备注
+  string remark = 5;
+}
+
+message LedgerListRequest {
+
+  // 年月，格式：YYYY.MM
+  string ym = 1;
+}
+
+message LedgerListReply {
+
+  // 账本列表
+  repeated LedgerItem items = 1;
+}
+
+message LedgerItem {
+
+  // 日期，格式：YYYY-MM-DD
+  string entry_date = 1;
+
+  // 年月，格式：YYYY.MM
+  string ym = 2;
+
+  // 金额
+  string amount = 3;
+
+  // 类别
+  string category = 4;
+
+  // 备注
+  string remark = 5;
+}
+
+message LedgerStatsRequest {
+
+  // 统计维度：month / year（默认 month）
+  string dimension = 1;
+
+  // 年月，格式：YYYY.MM（dimension=month 时生效，可选）
+  string ym = 2;
+
+  // 年份，格式：YYYY（dimension=year 时生效，可选）
+  string year = 3;
+}
+
+message LedgerStatsReply {
+
+  // 统计维度：month / year
+  string dimension = 1;
+
+  // 实际生效的年月，格式：YYYY.MM
+  string ym = 2;
+
+  // 实际生效的年份，格式：YYYY
+  string year = 3;
+
+  // 可选的年月列表（升序）
+  repeated string available_yms = 4;
+
+  // 可选的年份列表（升序）
+  repeated string available_years = 5;
+
+  // 支出趋势点
+  repeated LedgerTrendPoint trend_points = 6;
+
+  // 支出排行榜
+  repeated LedgerExpenseRankItem expense_rankings = 7;
+
+  // 当前筛选维度下总支出
+  string total_expense = 8;
+}
+
+message LedgerTrendPoint {
+
+  // 维度键（month: YYYY-MM-DD；year: YYYY.MM）
+  string key = 1;
+
+  // 支出金额（正数）
+  string expense = 2;
+}
+
+message LedgerExpenseRankItem {
+
+  // 排名（从1开始）
+  uint32 rank = 1;
+
+  // 类别
+  string category = 2;
+
+  // 支出金额（正数）
+  string expense = 3;
+}
+
+enum LoanType {
+
+  // 未指定
+  LOAN_TYPE_UNSPECIFIED = 0;
+
+  // 房贷
+  LOAN_TYPE_MORTGAGE = 1;
+}
+
+message LoanBalanceItem {
+
+  // 贷款ID
+  string loan_id = 1;
+
+  // 贷款名称
+  string loan_name = 2;
+
+  // 贷款类型
+  LoanType loan_type = 3;
+
+  // 当月还款后剩余待还本金
+  string remaining_principal = 4;
+
+  // 当月月供本金
+  string monthly_principal = 5;
+
+  // 当月月供利息
+  string monthly_interest = 6;
+
+  // 贷款日期，格式：YYYY-MM-DD
+  string loan_date = 7;
+
+  // 当月提前还款本金
+  string prepayment_principal = 8;
+}
+
+message CreateMortgageLoanRequest {
+
+  // 贷款名称（可选）
+  string loan_name = 1;
+
+  // 初始贷款金额
+  string initial_principal = 2;
+
+  // 年利率，示例：0.0315
+  string annual_rate = 3;
+
+  // 贷款年限，示例：30
+  uint32 term_years = 4;
+
+  // 贷款日期，格式：YYYY-MM-DD（支持 YYYY.M.D）
+  string loan_date = 5;
+}
+
+message CreateMortgageLoanReply {
+
+  // 贷款ID
+  string loan_id = 1;
+}
+
+message StartLoanRepaymentRequest {
+
+  // 贷款ID
+  string loan_id = 1;
+
+  // 开始计息日期，格式：YYYY-MM-DD（支持 YYYY.M.D）
+  string start_date = 2;
+
+  // 每月还款日（1-31），首期默认下个月该日期还款
+  uint32 repayment_day = 3;
+}
+
+message StartLoanRepaymentReply {
+
+  // 贷款ID
+  string loan_id = 1;
+
+  // 开始计息日期，格式：YYYY-MM-DD
+  string start_date = 2;
+
+  // 每月还款日（1-31）
+  uint32 repayment_day = 3;
+
+  // 首次还款日，格式：YYYY-MM-DD
+  string first_due_date = 4;
+}
+
+message AdjustLoanRateRequest {
+
+  // 贷款ID
+  string loan_id = 1;
+
+  // 生效日期，格式：YYYY-MM-DD（支持 YYYY.M.D）
+  string effective_date = 2;
+
+  // 新年利率，示例：0.0295
+  string annual_rate = 3;
+}
+
+message AdjustLoanRateReply {
+
+  // 贷款ID
+  string loan_id = 1;
+
+  // 生效日期，格式：YYYY-MM-DD
+  string effective_date = 2;
+
+  // 调整后的年利率（小数）
+  string annual_rate = 3;
+}
+
+enum PrepaymentMode {
+
+  // 未指定
+  PREPAYMENT_MODE_UNSPECIFIED = 0;
+
+  // 月供不变，缩短期限
+  PREPAYMENT_MODE_KEEP_PAYMENT_SHORTEN_TERM = 1;
+
+  // 期限不变，降低月供
+  PREPAYMENT_MODE_KEEP_TERM_REDUCE_PAYMENT = 2;
+}
+
+message AddLoanPrepaymentRequest {
+
+  // 贷款ID
+  string loan_id = 1;
+
+  // 提前还款日期，格式：YYYY-MM-DD（支持 YYYY.M.D）
+  string prepayment_date = 2;
+
+  // 提前还款金额
+  string amount = 3;
+
+  // 提前还款方式
+  PrepaymentMode mode = 4;
+}
+
+message AddLoanPrepaymentReply {
+
+  // 贷款ID
+  string loan_id = 1;
+
+  // 提前还款日期，格式：YYYY-MM-DD
+  string prepayment_date = 2;
+
+  // 提前还款金额
+  string amount = 3;
+
+  // 提前还款方式
+  PrepaymentMode mode = 4;
+}
+
+message LoanSummaryListRequest {
+}
+
+message LoanSummaryListReply {
+
+  // 贷款汇总列表
+  repeated LoanSummaryItem items = 1;
+}
+
+message LoanSummaryItem {
+
+  // 贷款ID
+  string loan_id = 1;
+
+  // 贷款名称
+  string loan_name = 2;
+
+  // 贷款类型
+  LoanType loan_type = 3;
+
+  // 贷款日期，格式：YYYY-MM-DD
+  string loan_date = 4;
+
+  // 当前年利率（小数）
+  string annual_rate = 5;
+
+  // 贷款总额（初始本金）
+  string initial_principal = 6;
+
+  // 剩余本金
+  string remaining_principal = 7;
+
+  // 累计还款月数
+  uint32 repaid_months = 8;
+
+  // 累计还款本金
+  string cumulative_principal = 9;
+
+  // 累计还款利息
+  string cumulative_interest = 10;
+
+  // 下次还款日，格式：YYYY-MM-DD
+  string next_due_date = 11;
+
+  // 剩余待还利息（按当前计划测算）
+  string remaining_interest = 12;
+
+  // 预计结清日，格式：YYYY-MM-DD
+  string estimated_payoff_date = 13;
+
+  // 合同贷款总期数（月）
+  uint32 term_months = 14;
+
+  // 相比合同贷款总期数提前结清的月数
+  uint32 shortened_months = 15;
+}
+
+message LoanDetailRequest {
+
+  // 贷款ID
+  string loan_id = 1;
+
+  // 返回未来计划期数（默认24）
+  uint32 months = 2;
+}
+
+message LoanDetailReply {
+
+  // 贷款汇总
+  LoanSummaryItem summary = 1;
+
+  // 未来还款计划
+  repeated LoanRepaymentPlanItem plans = 2;
+
+  // 调息历史（按生效日期倒序）
+  repeated LoanRateAdjustmentHistoryItem rate_adjustments = 3;
+
+  // 提前还款历史（按日期倒序）
+  repeated LoanPrepaymentHistoryItem prepayments = 4;
+}
+
+message LoanRepaymentPlanItem {
+
+  // 期数（从1开始）
+  uint32 period = 1;
+
+  // 还款日，格式：YYYY-MM-DD
+  string due_date = 2;
+
+  // 还款年月，格式：YYYY.MM
+  string ym = 3;
+
+  // 当期还款本金
+  string monthly_principal = 4;
+
+  // 当期还款利息
+  string monthly_interest = 5;
+
+  // 当期还款后剩余本金
+  string remaining_principal = 6;
+}
+
+message LoanRateAdjustmentHistoryItem {
+
+  // 生效日期，格式：YYYY-MM-DD
+  string effective_date = 1;
+
+  // 调整前年利率（小数）
+  string previous_annual_rate = 2;
+
+  // 调整后年利率（小数）
+  string new_annual_rate = 3;
+
+  // 调整幅度（单位：基点，1bp = 0.01%，可正可负）
+  string delta_bps = 4;
+}
+
+message LoanPrepaymentHistoryItem {
+
+  // 提前还款日期，格式：YYYY-MM-DD
+  string prepayment_date = 1;
+
+  // 提前还款金额
+  string amount = 2;
+
+  // 提前还款方式
+  PrepaymentMode mode = 3;
+
+  // 本次提前还款节省利息
+  string saved_interest = 4;
+}
